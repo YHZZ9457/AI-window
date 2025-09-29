@@ -6,7 +6,8 @@ A modern, minimalist desktop AI assistant application built with SvelteKit and T
 
 ## Features / 功能特性
 
-- 🚀 **Modern UI** - Clean, minimalist black and white design
+- 🚀 **Modern UI** - Clean, minimalist black and white design with dark mode support
+- 🌙 **Dark Mode** - Seamless theme switching with system preference detection
 - 💬 **AI Chat** - Interactive chat interface with OpenAI integration
 - ⚡ **Fast & Lightweight** - Built with SvelteKit for optimal performance
 - 🖥️ **Desktop App** - Native desktop experience with Tauri
@@ -14,7 +15,8 @@ A modern, minimalist desktop AI assistant application built with SvelteKit and T
 - 💾 **Export Chat** - Save conversations as JSON files
 - ⌨️ **Global Shortcut** - Quick access with customizable keyboard shortcuts
 
-- 🚀 **现代化界面** - 简洁的黑白极简设计
+- 🚀 **现代化界面** - 简洁的黑白极简设计，支持夜间模式
+- 🌙 **夜间模式** - 无缝主题切换，支持系统偏好检测
 - 💬 **AI 对话** - 集成 OpenAI 的交互式聊天界面
 - ⚡ **快速轻量** - 使用 SvelteKit 构建，性能优异
 - 🖥️ **桌面应用** - 通过 Tauri 提供原生桌面体验
@@ -86,25 +88,41 @@ Configure API keys, model settings, and shortcuts
    - Click the settings icon in the top-right corner
    - Enter your OpenAI API key and preferred model
    - Set up global shortcut if desired
+   - Choose your preferred theme (Light, Dark, or Auto)
    
    - 点击右上角的设置图标
    - 输入你的 OpenAI API 密钥和首选模型
    - 根据需要设置全局快捷键
+   - 选择你偏好的主题（亮色、暗色或自动）
 
 3. **Start chatting** / **开始对话**
    - Type your message in the input field
    - Press Enter or click the send button
    - Use the clear button to start a new conversation
+   - Toggle theme with the theme button in the header
    
    - 在输入框中输入你的消息
    - 按 Enter 键或点击发送按钮
    - 使用清除按钮开始新的对话
+   - 通过标题栏的主题按钮切换主题
 
 ### Keyboard Shortcuts / 键盘快捷键
 
 - `Enter` - Send message / 发送消息
 - `Escape` - Hide window / 隐藏窗口
 - Custom global shortcut (configurable) / 可自定义的全局快捷键
+
+### Theme Management / 主题管理
+
+- **Light Mode** - Clean white background with black text
+- **Dark Mode** - Comfortable dark background with light text
+- **Auto Mode** - Automatically follows your system theme preference
+- **Quick Toggle** - Click the theme button in the header to switch between light and dark modes
+
+- **亮色模式** - 干净的白色背景配黑色文字
+- **暗色模式** - 舒适的深色背景配浅色文字
+- **自动模式** - 自动跟随系统主题偏好
+- **快速切换** - 点击标题栏的主题按钮在亮色和暗色模式之间切换
 
 ## Configuration / 配置
 
@@ -132,12 +150,14 @@ SYSTEM_PROMPT=You are a helpful AI assistant.
 - **API URL** - OpenAI API endpoint
 - **Model Name** - Preferred AI model (e.g., gpt-4o-mini)
 - **Global Shortcut** - Keyboard shortcut to show/hide the app
+- **Theme** - Choose between Light, Dark, or Auto (follow system)
 
 - **系统提示** - 定义 AI 的行为和个性
 - **API 密钥** - 你的 OpenAI API 密钥（本地存储）
 - **API 地址** - OpenAI API 端点
 - **模型名称** - 首选的 AI 模型（例如 gpt-4o-mini）
 - **全局快捷键** - 显示/隐藏应用的键盘快捷键
+- **主题** - 在亮色、暗色或自动（跟随系统）之间选择
 
 ## Development / 开发
 
