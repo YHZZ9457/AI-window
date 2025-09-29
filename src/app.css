@@ -80,9 +80,38 @@
 
 /* Dark theme overrides */
 [data-theme="dark"] {
+  /* Color Palette - Dark Theme */
+  --primary: #ffffff;
+  --primary-hover: #e5e5e5;
+  --secondary: #a3a3a3;
+  --accent: #737373;
+  
+  /* Blue colors for user messages */
+  --blue-primary: #3b82f6;
+  --blue-hover: #2563eb;
+  --blue-light: #1e3a8a;
+  
+  /* Background Colors */
   --bg-primary: #0f172a;
   --bg-secondary: #1e293b;
   --bg-tertiary: #334155;
+  --bg-glass: rgba(15, 23, 42, 0.9);
+  --bg-glass-light: rgba(30, 41, 59, 0.8);
+  
+  /* Text Colors */
+  --text-primary: #ffffff;
+  --text-secondary: #e2e8f0;
+  --text-muted: #94a3b8;
+  --text-disabled: #64748b;
+  
+  /* Border Colors */
+  --border-primary: rgba(255, 255, 255, 0.1);
+  --border-secondary: rgba(255, 255, 255, 0.2);
+  --border-focus: var(--primary);
+  
+  /* Shadow Colors */
+  --shadow-glow: rgba(0, 0, 0, 0.3);
+  --shadow-soft: rgba(0, 0, 0, 0.2);
 }
 
 /* Reset and Base Styles */

@@ -1,7 +1,8 @@
 use tauri::{Manager, AppHandle, State};
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Mutex, atomic::{AtomicBool, Ordering}};
+use std::time::{Duration, Instant};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutEvent};
@@ -243,10 +244,16 @@ fn toggle_window_visibility(handle: &AppHandle) {
     if let Some(window) = handle.get_webview_window("main") {
         if let Ok(is_visible) = window.is_visible() {
             if is_visible {
-                window.hide().unwrap();
+                if let Err(e) = window.hide() {
+                    println!("Failed to hide window: {}", e);
+                }
             } else {
-                window.show().unwrap();
-                window.set_focus().unwrap();
+                if let Err(e) = window.show() {
+                    println!("Failed to show window: {}", e);
+                }
+                if let Err(e) = window.set_focus() {
+                    println!("Failed to set window focus: {}", e);
+                }
             }
         }
     }
@@ -254,7 +261,21 @@ fn toggle_window_visibility(handle: &AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    static LAST_TRIGGER: std::sync::Mutex<Option<Instant>> = std::sync::Mutex::new(None);
+    
     let handler = |app: &AppHandle, _shortcut: &Shortcut, _event: ShortcutEvent| {
+        let now = Instant::now();
+        let mut last_trigger_guard = LAST_TRIGGER.lock().unwrap();
+        
+        // 添加防抖机制，防止快速重复触发
+        if let Some(last_trigger) = *last_trigger_guard {
+            if now.duration_since(last_trigger) < Duration::from_millis(200) {
+                return;
+            }
+        }
+        
+        *last_trigger_guard = Some(now);
+        
         // 切换窗口显示/隐藏状态
         toggle_window_visibility(app);
     };

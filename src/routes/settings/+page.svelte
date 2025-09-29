@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
+  import { theme } from '$lib/stores/theme';
+  import { getActualTheme } from '$lib/stores/theme';
 
   let settings = $state({
     api_key: '',
@@ -11,19 +13,29 @@
     api_type: 'openai'
   });
   let message = $state('');
+  let currentTheme: 'light' | 'dark' | 'auto' = $state('auto');
+  let actualTheme: 'light' | 'dark' = $state('light');
 
-  onMount(async () => {
-    try {
-      const loadedSettings = await invoke('get_settings') as typeof settings;
-      settings = { ...settings, ...loadedSettings };
+  onMount(() => {
+    // Load settings
+    invoke('get_settings').then((loadedSettings) => {
+      settings = { ...settings, ...loadedSettings as typeof settings };
       
       // 确保加载的设置 URL 格式正确
       if (settings.api_url && !settings.api_url.includes('/chat/completions')) {
         settings.api_url = normalizeApiUrl(settings.api_url);
       }
-    } catch (e) {
+    }).catch((e) => {
       message = `Error getting settings: ${e}`;
-    }
+    });
+
+    // Initialize theme
+    const unsubscribe = theme.subscribe(value => {
+      currentTheme = value;
+      actualTheme = getActualTheme(value);
+    });
+
+    return unsubscribe;
   });
 
   async function handleSave() {
@@ -79,6 +91,10 @@
     
     // 默认添加 /v1/chat/completions
     return normalizedUrl + '/v1/chat/completions';
+  }
+
+  function setTheme(newTheme: 'light' | 'dark' | 'auto') {
+    theme.set(newTheme);
   }
 </script>
 
@@ -146,6 +162,52 @@
           <label for="shortcut">Global Shortcut</label>
           <input id="shortcut" type="text" bind:value={settings.shortcut} placeholder="e.g., Alt+Space" />
           <p class="hint">Use modifiers like Ctrl, Alt, Shift, Super. Separate with "+".</p>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Appearance</h3>
+        <div class="theme-options">
+          <button class="theme-option {currentTheme === 'light' ? 'active' : ''}" onclick={() => setTheme('light')} aria-pressed={currentTheme === 'light'}>
+            <div class="theme-preview light">
+              <div class="preview-header"></div>
+              <div class="preview-content">
+                <div class="preview-message user"></div>
+                <div class="preview-message assistant"></div>
+              </div>
+              <div class="preview-input"></div>
+            </div>
+            <span class="theme-label">Light</span>
+          </button>
+          
+          <button class="theme-option {currentTheme === 'dark' ? 'active' : ''}" onclick={() => setTheme('dark')} aria-pressed={currentTheme === 'dark'}>
+            <div class="theme-preview dark">
+              <div class="preview-header"></div>
+              <div class="preview-content">
+                <div class="preview-message user"></div>
+                <div class="preview-message assistant"></div>
+              </div>
+              <div class="preview-input"></div>
+            </div>
+            <span class="theme-label">Dark</span>
+          </button>
+          
+          <button class="theme-option {currentTheme === 'auto' ? 'active' : ''}" onclick={() => setTheme('auto')} aria-pressed={currentTheme === 'auto'}>
+            <div class="theme-preview auto">
+              <div class="preview-header"></div>
+              <div class="preview-content">
+                <div class="preview-message user"></div>
+                <div class="preview-message assistant"></div>
+              </div>
+              <div class="preview-input"></div>
+            </div>
+            <span class="theme-label">Auto</span>
+            <span class="theme-description">Follow system</span>
+          </button>
+        </div>
+        
+        <div class="current-theme-info">
+          <p>Current theme: <strong>{actualTheme}</strong> {currentTheme === 'auto' ? '(system preference)' : ''}</p>
         </div>
       </div>
 
@@ -377,6 +439,119 @@
     border: 1px solid rgba(239, 68, 68, 0.3);
   }
 
+  /* Theme Options */
+  .theme-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .theme-option {
+    cursor: pointer;
+    border: 2px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    transition: var(--transition-normal);
+    background: var(--bg-primary);
+    text-align: center;
+  }
+
+  .theme-option:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .theme-option.active {
+    border-color: var(--primary);
+    background: var(--bg-tertiary);
+  }
+
+  .theme-preview {
+    width: 100%;
+    height: 80px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-bottom: var(--spacing-sm);
+    border: 1px solid var(--border-primary);
+  }
+
+  .theme-preview.light {
+    background: #ffffff;
+  }
+
+  .theme-preview.dark {
+    background: #0f172a;
+  }
+
+  .theme-preview.auto {
+    background: linear-gradient(135deg, #ffffff 50%, #0f172a 50%);
+  }
+
+  .preview-header {
+    height: 12px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-primary);
+  }
+
+  .preview-content {
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .preview-message {
+    height: 6px;
+    border-radius: 3px;
+  }
+
+  .preview-message.user {
+    background: var(--blue-primary);
+    width: 60%;
+    margin-left: auto;
+  }
+
+  .preview-message.assistant {
+    background: var(--bg-tertiary);
+    width: 80%;
+  }
+
+  .preview-input {
+    height: 8px;
+    background: var(--bg-primary);
+    border-top: 1px solid var(--border-primary);
+    margin-top: auto;
+  }
+
+  .theme-label {
+    display: block;
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+  }
+
+  .theme-description {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin-top: var(--spacing-xs);
+  }
+
+  .current-theme-info {
+    padding: var(--spacing-md);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-primary);
+  }
+
+  .current-theme-info p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+  }
+
   /* Responsive design */
   @media (max-width: 640px) {
     .settings-container {
@@ -389,6 +564,10 @@
     
     .actions {
       flex-direction: column;
+    }
+    
+    .theme-options {
+      grid-template-columns: 1fr;
     }
   }
 </style>
