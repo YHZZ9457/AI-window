@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
-  import { theme } from '$lib/stores/theme';
-  import { getActualTheme } from '$lib/stores/theme';
+  import { theme, getActualTheme } from '$lib/stores/theme';
+  import { _, locale } from 'svelte-i18n';
 
   let settings = $state({
     api_key: '',
@@ -17,19 +17,15 @@
   let actualTheme: 'light' | 'dark' = $state('light');
 
   onMount(() => {
-    // Load settings
     invoke('get_settings').then((loadedSettings) => {
       settings = { ...settings, ...loadedSettings as typeof settings };
-      
-      // 确保加载的设置 URL 格式正确
       if (settings.api_url && !settings.api_url.includes('/chat/completions')) {
         settings.api_url = normalizeApiUrl(settings.api_url);
       }
     }).catch((e) => {
-      message = `Error getting settings: ${e}`;
+      message = $_('settings.messages.loadError', { values: { error: e }});
     });
 
-    // Initialize theme
     const unsubscribe = theme.subscribe(value => {
       currentTheme = value;
       actualTheme = getActualTheme(value);
@@ -40,21 +36,19 @@
 
   async function handleSave() {
     try {
-      // 确保 URL 格式正确
       const processedSettings = { ...settings };
       processedSettings.api_url = normalizeApiUrl(processedSettings.api_url);
       
       await invoke('set_settings', { settings: processedSettings });
-      settings.api_url = processedSettings.api_url; // 更新显示的值
-      message = 'Settings saved successfully!';
+      settings.api_url = processedSettings.api_url;
+      message = $_('settings.messages.saveSuccess');
       setTimeout(() => { message = '' }, 3000);
     } catch (e) {
-      message = `Error saving settings: ${e}`;
+      message = $_('settings.messages.saveError', { values: { error: e }});
     }
   }
 
   function handleUrlBlur() {
-    // 当输入框失去焦点时自动补全 URL
     if (settings.api_url && !settings.api_url.includes('/chat/completions')) {
       settings.api_url = normalizeApiUrl(settings.api_url);
     }
@@ -62,39 +56,23 @@
 
   function normalizeApiUrl(url: string): string {
     if (!url) return url;
-    
-    // 如果已经包含 /chat/completions，直接返回
-    if (url.includes('/chat/completions')) {
-      return url;
-    }
-    
-    // 移除末尾的斜杠
+    if (url.includes('/chat/completions')) return url;
     let normalizedUrl = url.replace(/\/+$/, '');
-    
-    // 检查常见的 API 端点模式
-    if (normalizedUrl.endsWith('/v1')) {
-      return normalizedUrl + '/chat/completions';
-    }
-    
-    if (normalizedUrl.endsWith('/api')) {
-      return normalizedUrl + '/v1/chat/completions';
-    }
-    
-    if (normalizedUrl.endsWith('/chat')) {
-      return normalizedUrl + '/completions';
-    }
-    
-    // 检查是否已经是完整的 OpenAI 兼容端点（如 DeepSeek）
-    if (normalizedUrl.includes('api.deepseek.com')) {
-      return normalizedUrl + '/v1/chat/completions';
-    }
-    
-    // 默认添加 /v1/chat/completions
+    if (normalizedUrl.endsWith('/v1')) return normalizedUrl + '/chat/completions';
+    if (normalizedUrl.endsWith('/api')) return normalizedUrl + '/v1/chat/completions';
+    if (normalizedUrl.endsWith('/chat')) return normalizedUrl + '/completions';
+    if (normalizedUrl.includes('api.deepseek.com')) return normalizedUrl + '/v1/chat/completions';
     return normalizedUrl + '/v1/chat/completions';
   }
 
   function setTheme(newTheme: 'light' | 'dark' | 'auto') {
     theme.set(newTheme);
+  }
+
+  function setLanguage(lang: string | null) {
+    if (lang) {
+      locale.set(lang);
+    }
   }
 </script>
 
@@ -106,132 +84,128 @@
           <path d="M19 12H5"></path>
           <path d="M12 19l-7-7 7-7"></path>
         </svg>
-        Back
+        {$_('settings.back')}
       </a>
-      <h2>Settings</h2>
+      <h2>{$_('settings.title')}</h2>
     </div>
     
     <div class="settings-content">
       <div class="settings-section">
-        <h3>AI Configuration</h3>
+        <h3>{$_('settings.aiConfig.title')}</h3>
         <div class="form-group">
-          <label for="system-prompt">System Prompt</label>
-          <textarea id="system-prompt" bind:value={settings.system_prompt} rows="4" placeholder="Define the AI's behavior and personality..."></textarea>
+          <label for="system-prompt">{$_('settings.aiConfig.systemPrompt')}</label>
+          <textarea id="system-prompt" bind:value={settings.system_prompt} rows="4" placeholder={$_('settings.aiConfig.systemPromptPlaceholder')}></textarea>
         </div>
 
         <div class="form-group">
-          <label for="api-type">API Type</label>
+          <label for="api-type">{$_('settings.aiConfig.apiType')}</label>
           <select id="api-type" bind:value={settings.api_type}>
-            <option value="openai">OpenAI</option>
-            <option value="openai-compatible">OpenAI Compatible</option>
+            <option value="openai">{$_('settings.aiConfig.openai')}</option>
+            <option value="openai-compatible">{$_('settings.aiConfig.openaiCompatible')}</option>
           </select>
         </div>
 
         <div class="form-group">
-          <label for="api-key">API Key</label>
-          <input id="api-key" type="password" bind:value={settings.api_key} placeholder="Enter your API key" />
+          <label for="api-key">{$_('settings.aiConfig.apiKey')}</label>
+          <input id="api-key" type="password" bind:value={settings.api_key} placeholder={$_('settings.aiConfig.apiKeyPlaceholder')} />
         </div>
 
         <div class="form-group">
-          <label for="api-url">API Endpoint URL</label>
+          <label for="api-url">{$_('settings.aiConfig.apiEndpoint')}</label>
           <input 
             id="api-url" 
             type="text" 
             bind:value={settings.api_url} 
-            placeholder="e.g., https://api.openai.com/v1/chat/completions" 
+            placeholder={$_('settings.aiConfig.apiEndpointPlaceholder')} 
             onblur={handleUrlBlur}
           />
           <p class="hint">
             {#if settings.api_url && !settings.api_url.includes('/chat/completions')}
-              Will be saved as: {normalizeApiUrl(settings.api_url)}
+              {$_('settings.aiConfig.apiEndpointHintSave', { values: { url: normalizeApiUrl(settings.api_url) } })}
             {:else}
-              We'll automatically append /chat/completions if needed
+              {$_('settings.aiConfig.apiEndpointHint')}
             {/if}
           </p>
         </div>
 
         <div class="form-group">
-          <label for="model-name">Model Name</label>
-          <input id="model-name" type="text" bind:value={settings.model_name} placeholder="e.g., gpt-4o-mini or deepseek-chat" />
+          <label for="model-name">{$_('settings.aiConfig.modelName')}</label>
+          <input id="model-name" type="text" bind:value={settings.model_name} placeholder={$_('settings.aiConfig.modelNamePlaceholder')} />
         </div>
       </div>
 
       <div class="settings-section">
-        <h3>Application Settings</h3>
+        <h3>{$_('settings.appSettings.title')}</h3>
         <div class="form-group">
-          <label for="shortcut">Global Shortcut</label>
-          <input id="shortcut" type="text" bind:value={settings.shortcut} placeholder="e.g., Alt+Space" />
-          <p class="hint">Use modifiers like Ctrl, Alt, Shift, Super. Separate with "+".</p>
+          <label for="shortcut">{$_('settings.appSettings.shortcut')}</label>
+          <input id="shortcut" type="text" bind:value={settings.shortcut} placeholder={$_('settings.appSettings.shortcutPlaceholder')} />
+          <p class="hint">{$_('settings.appSettings.shortcutHint')}</p>
         </div>
       </div>
 
       <div class="settings-section">
-        <h3>Appearance</h3>
+        <h3>{$_('settings.appearance.title')}</h3>
         <div class="theme-options">
-          <button class="theme-option {currentTheme === 'light' ? 'active' : ''}" onclick={() => setTheme('light')} aria-pressed={currentTheme === 'light'}>
-            <div class="theme-preview light">
-              <div class="preview-header"></div>
-              <div class="preview-content">
-                <div class="preview-message user"></div>
-                <div class="preview-message assistant"></div>
-              </div>
-              <div class="preview-input"></div>
-            </div>
-            <span class="theme-label">Light</span>
+          <button class="theme-option {currentTheme === 'light' ? 'active' : ''}" on:click={() => setTheme('light')} aria-pressed={currentTheme === 'light'}>
+            <div class="theme-preview light"></div>
+            <span class="theme-label">{$_('settings.appearance.light')}</span>
           </button>
           
-          <button class="theme-option {currentTheme === 'dark' ? 'active' : ''}" onclick={() => setTheme('dark')} aria-pressed={currentTheme === 'dark'}>
-            <div class="theme-preview dark">
-              <div class="preview-header"></div>
-              <div class="preview-content">
-                <div class="preview-message user"></div>
-                <div class="preview-message assistant"></div>
-              </div>
-              <div class="preview-input"></div>
-            </div>
-            <span class="theme-label">Dark</span>
+          <button class="theme-option {currentTheme === 'dark' ? 'active' : ''}" on:click={() => setTheme('dark')} aria-pressed={currentTheme === 'dark'}>
+            <div class="theme-preview dark"></div>
+            <span class="theme-label">{$_('settings.appearance.dark')}</span>
           </button>
           
-          <button class="theme-option {currentTheme === 'auto' ? 'active' : ''}" onclick={() => setTheme('auto')} aria-pressed={currentTheme === 'auto'}>
-            <div class="theme-preview auto">
-              <div class="preview-header"></div>
-              <div class="preview-content">
-                <div class="preview-message user"></div>
-                <div class="preview-message assistant"></div>
-              </div>
-              <div class="preview-input"></div>
-            </div>
-            <span class="theme-label">Auto</span>
-            <span class="theme-description">Follow system</span>
+          <button class="theme-option {currentTheme === 'auto' ? 'active' : ''}" on:click={() => setTheme('auto')} aria-pressed={currentTheme === 'auto'}>
+            <div class="theme-preview auto"></div>
+            <span class="theme-label">{$_('settings.appearance.auto')}</span>
+            <span class="theme-description">{$_('settings.appearance.followSystem')}</span>
           </button>
         </div>
         
         <div class="current-theme-info">
-          <p>Current theme: <strong>{actualTheme}</strong> {currentTheme === 'auto' ? '(system preference)' : ''}</p>
+          <p>{@html $_('settings.appearance.currentTheme', { values: { actualTheme: actualTheme, currentTheme: currentTheme }})}</p>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>{$_('settings.language.title')}</h3>
+        <div class="form-group">
+            <select 
+                aria-label={$_('settings.language.title')}
+                class="language-select"
+                value={$locale} 
+                on:change={(e) => setLanguage(e.currentTarget.value)}
+            >
+                <option value="en">English</option>
+                <option value="zh-CN">简体中文</option>
+                <option value="zh-TW">繁體中文</option>
+                <option value="ja">日本語</option>
+            </select>
         </div>
       </div>
 
       <div class="actions">
-        <button onclick={handleSave} class="primary-button">
+        <button on:click={handleSave} class="primary-button">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
             <polyline points="17 21 17 13 7 13 7 21"></polyline>
             <polyline points="7 3 7 8 15 8"></polyline>
           </svg>
-          Save Settings
+          {$_('settings.actions.save')}
         </button>
-        <button class="secondary-button" onclick={() => invoke('open_config_directory')}>
+        <button class="secondary-button" on:click={() => invoke('open_config_directory')}>
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
             <line x1="16" y1="5" x2="22" y2="5"></line>
             <line x1="19" y1="2" x2="19" y2="8"></line>
           </svg>
-          Show Config Directory
+          {$_('settings.actions.showConfig')}
         </button>
       </div>
 
       {#if message}
-        <div class="message-banner {message.includes('Error') ? 'error' : 'success'}">
+        <div class="message-banner {message.includes('Error') || message.includes('错') ? 'error' : 'success'}">
           {message}
         </div>
       {/if}
@@ -330,6 +304,9 @@
     gap: var(--spacing-sm);
     margin-bottom: var(--spacing-lg);
   }
+  .form-group:last-child {
+      margin-bottom: 0;
+  }
 
   label {
     font-size: var(--font-size-sm);
@@ -348,6 +325,7 @@
     transition: var(--transition-normal);
     outline: none;
     resize: vertical;
+    width: 100%;
   }
 
   input:focus, textarea:focus, select:focus {
@@ -384,6 +362,7 @@
   .primary-button, .secondary-button {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-md) var(--spacing-lg);
     border-radius: var(--radius-md);
@@ -470,11 +449,12 @@
 
   .theme-preview {
     width: 100%;
-    height: 80px;
+    height: 60px;
     border-radius: var(--radius-sm);
     overflow: hidden;
     margin-bottom: var(--spacing-sm);
     border: 1px solid var(--border-primary);
+    background-color: var(--bg-primary);
   }
 
   .theme-preview.light {
@@ -487,42 +467,6 @@
 
   .theme-preview.auto {
     background: linear-gradient(135deg, #ffffff 50%, #0f172a 50%);
-  }
-
-  .preview-header {
-    height: 12px;
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-primary);
-  }
-
-  .preview-content {
-    padding: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-
-  .preview-message {
-    height: 6px;
-    border-radius: 3px;
-  }
-
-  .preview-message.user {
-    background: var(--blue-primary);
-    width: 60%;
-    margin-left: auto;
-  }
-
-  .preview-message.assistant {
-    background: var(--bg-tertiary);
-    width: 80%;
-  }
-
-  .preview-input {
-    height: 8px;
-    background: var(--bg-primary);
-    border-top: 1px solid var(--border-primary);
-    margin-top: auto;
   }
 
   .theme-label {

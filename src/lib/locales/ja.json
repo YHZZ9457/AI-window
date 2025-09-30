@@ -1,0 +1,68 @@
+{
+  "app": {
+    "title": "AI ウィンドウ"
+  },
+  "nav": {
+    "home": "ホーム",
+    "settings": "設定"
+  },
+  "home": {
+    "title": "AI コンパニオン",
+    "placeholder": "何でも聞いてください...",
+    "initialMessage": "AIの応答はここに表示されます。",
+    "you": "あなた",
+    "ai": "AI",
+    "buttons": {
+      "clear": "チャットをクリア",
+      "export": "チャットをエクスポート",
+      "theme": "テーマを切り替え",
+      "settings": "設定"
+    }
+  },
+  "settings": {
+    "title": "設定",
+    "back": "戻る",
+    "aiConfig": {
+      "title": "AI 設定",
+      "systemPrompt": "システムプロンプト",
+      "systemPromptPlaceholder": "AIの動作と個性を定義します...",
+      "apiType": "APIタイプ",
+      "openai": "OpenAI",
+      "openaiCompatible": "OpenAI互換",
+      "apiKey": "APIキー",
+      "apiKeyPlaceholder": "APIキーを入力してください",
+      "apiEndpoint": "APIエンドポイントURL",
+      "apiEndpointPlaceholder": "例: https://api.openai.com/v1/chat/completions",
+      "apiEndpointHint": "必要に応じて /chat/completions を自動的に追加します",
+      "apiEndpointHintSave": "保存形式: {url}",
+      "modelName": "モデル名",
+      "modelNamePlaceholder": "例: gpt-4o-mini または deepseek-chat"
+    },
+    "appSettings": {
+      "title": "アプリケーション設定",
+      "shortcut": "グローバルショートカット",
+      "shortcutPlaceholder": "例: Alt+Space",
+      "shortcutHint": "Ctrl, Alt, Shift, Super などの修飾キーを使用し、"+" で区切ります。"
+    },
+    "appearance": {
+      "title": "外観",
+      "light": "ライト",
+      "dark": "ダーク",
+      "auto": "自動",
+      "followSystem": "システムに従う",
+      "currentTheme": "現在のテーマ: <strong>{actualTheme}</strong> {currentTheme, select, auto {(システム設定)} other {}}"
+    },
+    "language": {
+      "title": "言語"
+    },
+    "actions": {
+      "save": "設定を保存",
+      "showConfig": "設定ディレクトリを表示"
+    },
+    "messages": {
+      "saveSuccess": "設定が正常に保存されました！",
+      "saveError": "設定の保存中にエラーが発生しました: {error}",
+      "loadError": "設定の取得中にエラーが発生しました: {error}"
+    }
+  }
+}

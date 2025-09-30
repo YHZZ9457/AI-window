@@ -5,6 +5,7 @@
   import { save } from '@tauri-apps/plugin-dialog';
   import { writeTextFile } from '@tauri-apps/plugin-fs';
   import { theme } from '$lib/stores/theme';
+  import { _ } from 'svelte-i18n';
 
   let appWindow: WebviewWindow | null = null;
 
@@ -15,7 +16,7 @@
 
   let prompt = $state('');
   let messages = $state<Message[]>([
-    { role: 'assistant', content: 'AI response will appear here.' }
+    { role: 'assistant', content: $_('home.initialMessage') }
   ]);
   let isLoading = $state(false);
   let outputAreaElement: HTMLElement;
@@ -26,9 +27,8 @@
     }
   }
 
-  // Use $effect to scroll to the bottom when messages change
   $effect(() => {
-    if (messages) { // This dependency triggers the effect
+    if (messages) {
       scrollToBottom();
     }
   });
@@ -37,10 +37,9 @@
     if (!prompt || isLoading) return;
 
     const userMessage: Message = { role: 'user', content: prompt };
-    prompt = ''; // Clear input immediately
+    prompt = '';
 
-    // If the initial message is the placeholder, replace it.
-    if (messages.length === 1 && messages[0].role === 'assistant' && messages[0].content === 'AI response will appear here.') {
+    if (messages.length === 1 && messages[0].content === $_('home.initialMessage')) {
       messages = [userMessage];
     } else {
       messages = [...messages, userMessage];
@@ -59,14 +58,13 @@
   }
 
   function clearChat() {
-    messages = [{ role: 'assistant', content: 'AI response will appear here.' }];
+    messages = [{ role: 'assistant', content: $_('home.initialMessage') }];
   }
 
   function toggleTheme() {
     theme.update(current => {
       if (current === 'light') return 'dark';
       if (current === 'dark') return 'light';
-      // If current is 'auto', switch to the opposite of system preference
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'light' : 'dark';
     });
   }
@@ -81,7 +79,6 @@
     const jsonContent = JSON.stringify(chatData, null, 2);
 
     try {
-      // 自动生成文件名，包含日期时间
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const defaultFileName = `chat-export-${timestamp}.json`;
       
@@ -98,12 +95,10 @@
       }
     } catch (error) {
       console.error('Failed to save file:', error);
-      // Optionally, show an error message to the user
     }
   }
 
   onMount(() => {
-    // Initialize appWindow asynchronously but don't make onMount async
     WebviewWindow.getByLabel('main').then(window => {
       appWindow = window;
     });
@@ -130,10 +125,10 @@
         <path d="M2 17l10 5 10-5"></path>
         <path d="M2 12l10 5 10-5"></path>
       </svg>
-      <h1 class="title">AI Companion</h1>
+      <h1 class="title">{$_('home.title')}</h1>
     </div>
     <div class="header-buttons">
-      <button onclick={clearChat} class="header-button" aria-label="Clear chat" title="Clear Chat">
+      <button onclick={clearChat} class="header-button" aria-label={$_('home.buttons.clear')} title={$_('home.buttons.clear')}>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="3 6 5 6 21 6"></polyline>
           <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -141,14 +136,14 @@
           <line x1="14" y1="11" x2="14" y2="17"></line>
         </svg>
       </button>
-      <button onclick={exportToJSON} class="header-button" aria-label="Export chat to JSON" title="Export Chat">
+      <button onclick={exportToJSON} class="header-button" aria-label={$_('home.buttons.export')} title={$_('home.buttons.export')}>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
       </button>
-      <button onclick={toggleTheme} class="header-button" title="Toggle theme" aria-label="Toggle theme">
+      <button onclick={toggleTheme} class="header-button" title={$_('home.buttons.theme')} aria-label={$_('home.buttons.theme')}>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="5"></circle>
           <line x1="12" y1="1" x2="12" y2="3"></line>
@@ -161,7 +156,7 @@
           <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
         </svg>
       </button>
-      <a href="/settings" class="header-button" title="Settings" aria-label="Settings">
+      <a href="/settings" class="header-button" title={$_('home.buttons.settings')} aria-label={$_('home.buttons.settings')}>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"></circle>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -187,7 +182,7 @@
                 </svg>
               {/if}
             </div>
-            <span class="role">{message.role === 'user' ? 'You' : 'AI'}</span>
+            <span class="role">{message.role === 'user' ? $_('home.you') : $_('home.ai')}</span>
             <span class="timestamp">{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
           </div>
           <div class="content">{message.content}</div>
@@ -201,7 +196,7 @@
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path>
               </svg>
             </div>
-            <span class="role">AI</span>
+            <span class="role">{$_('home.ai')}</span>
           </div>
           <div class="content">
             <div class="typing-indicator">
@@ -219,7 +214,7 @@
         <input 
           type="text" 
           class="message-input"
-          placeholder="Ask me anything..." 
+          placeholder={$_('home.placeholder')} 
           bind:value={prompt}
           onkeydown={(e) => e.key === 'Enter' && handleSubmit()}
           disabled={isLoading}

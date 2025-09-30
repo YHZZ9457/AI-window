@@ -1,0 +1,68 @@
+{
+  "app": {
+    "title": "AI Window"
+  },
+  "nav": {
+    "home": "Home",
+    "settings": "Settings"
+  },
+  "home": {
+    "title": "AI Companion",
+    "placeholder": "Ask me anything...",
+    "initialMessage": "AI response will appear here.",
+    "you": "You",
+    "ai": "AI",
+    "buttons": {
+      "clear": "Clear Chat",
+      "export": "Export Chat",
+      "theme": "Toggle theme",
+      "settings": "Settings"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "back": "Back",
+    "aiConfig": {
+      "title": "AI Configuration",
+      "systemPrompt": "System Prompt",
+      "systemPromptPlaceholder": "Define the AI's behavior and personality...",
+      "apiType": "API Type",
+      "openai": "OpenAI",
+      "openaiCompatible": "OpenAI Compatible",
+      "apiKey": "API Key",
+      "apiKeyPlaceholder": "Enter your API key",
+      "apiEndpoint": "API Endpoint URL",
+      "apiEndpointPlaceholder": "e.g., https://api.openai.com/v1/chat/completions",
+      "apiEndpointHint": "We'll automatically append /chat/completions if needed",
+      "apiEndpointHintSave": "Will be saved as: {url}",
+      "modelName": "Model Name",
+      "modelNamePlaceholder": "e.g., gpt-4o-mini or deepseek-chat"
+    },
+    "appSettings": {
+      "title": "Application Settings",
+      "shortcut": "Global Shortcut",
+      "shortcutPlaceholder": "e.g., Alt+Space",
+      "shortcutHint": "Use modifiers like Ctrl, Alt, Shift, Super. Separate with \"+\""
+    },
+    "appearance": {
+      "title": "Appearance",
+      "light": "Light",
+      "dark": "Dark",
+      "auto": "Auto",
+      "followSystem": "Follow system",
+      "currentTheme": "Current theme: <strong>{actualTheme}</strong> {currentTheme, select, auto {(system preference)} other {}}"
+    },
+    "language": {
+      "title": "Language"
+    },
+    "actions": {
+      "save": "Save Settings",
+      "showConfig": "Show Config Directory"
+    },
+    "messages": {
+      "saveSuccess": "Settings saved successfully!",
+      "saveError": "Error saving settings: {error}",
+      "loadError": "Error getting settings: {error}"
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "app": {
+    "title": "AI 視窗"
+  },
+  "nav": {
+    "home": "主頁",
+    "settings": "設定"
+  },
+  "home": {
+    "title": "AI 助理",
+    "placeholder": "隨便問點什麼...",
+    "initialMessage": "AI 的回覆會出現在這裡。",
+    "you": "你",
+    "ai": "AI",
+    "buttons": {
+      "clear": "清空對話",
+      "export": "匯出對話",
+      "theme": "切換主題",
+      "settings": "設定"
+    }
+  },
+  "settings": {
+    "title": "設定",
+    "back": "返回",
+    "aiConfig": {
+      "title": "AI 設定",
+      "systemPrompt": "系統提示",
+      "systemPromptPlaceholder": "定義 AI 的行為和個性...",
+      "apiType": "API 類型",
+      "openai": "OpenAI",
+      "openaiCompatible": "OpenAI 相容",
+      "apiKey": "API 金鑰",
+      "apiKeyPlaceholder": "輸入您的 API 金鑰",
+      "apiEndpoint": "API 端點 URL",
+      "apiEndpointPlaceholder": "例如 https://api.openai.com/v1/chat/completions",
+      "apiEndpointHint": "如果需要，我們將自動補全 /chat/completions",
+      "apiEndpointHintSave": "將儲存為: {url}",
+      "modelName": "模型名稱",
+      "modelNamePlaceholder": "例如 gpt-4o-mini 或 deepseek-chat"
+    },
+    "appSettings": {
+      "title": "應用程式設定",
+      "shortcut": "全域快捷鍵",
+      "shortcutPlaceholder": "例如 Alt+Space",
+      "shortcutHint": "使用 Ctrl, Alt, Shift, Super 等修飾鍵，用 \"+\" 分隔。"
+    },
+    "appearance": {
+      "title": "外觀",
+      "light": "淺色",
+      "dark": "深色",
+      "auto": "自動",
+      "followSystem": "跟隨系統",
+      "currentTheme": "當前主題: <strong>{actualTheme}</strong> {currentTheme, select, auto {(系統偏好)} other {}}"
+    },
+    "language": {
+      "title": "語言"
+    },
+    "actions": {
+      "save": "儲存設定",
+      "showConfig": "顯示設定目錄"
+    },
+    "messages": {
+      "saveSuccess": "設定已成功儲存！",
+      "saveError": "儲存設定時出錯: {error}",
+      "loadError": "取得設定時出錯: {error}"
+    }
+  }
+}
