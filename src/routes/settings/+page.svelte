@@ -15,6 +15,65 @@
   let message = $state('');
   let currentTheme: 'light' | 'dark' | 'auto' = $state('auto');
   let actualTheme: 'light' | 'dark' = $state('light');
+  let openSection = $state('aiConfig'); // aiConfig, appSettings
+  let isRecording = $state(false);
+  let previousShortcut = '';
+
+  const handleShortcutKeydown = (event: KeyboardEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.key === 'Escape') {
+      cancelRecording();
+      return;
+    }
+
+    // Ignore modifier-only key presses
+    if (['Control', 'Alt', 'Shift', 'Meta'].includes(event.key)) {
+        return;
+    }
+
+    const parts = [];
+    if (event.ctrlKey) parts.push('Ctrl');
+    if (event.altKey) parts.push('Alt');
+    if (event.shiftKey) parts.push('Shift');
+    if (event.metaKey) parts.push('Super');
+
+    const key = event.key.toUpperCase();
+    let finalKey = key;
+    if (key.startsWith('ARROW')) {
+        finalKey = key.substring(5);
+    }
+    if (finalKey === ' ') {
+        finalKey = 'SPACE';
+    }
+    parts.push(finalKey);
+
+    // A valid shortcut should have a non-modifier key.
+    // We also prevent single character shortcuts unless they are function keys.
+    const isChar = event.key.length === 1 && event.key.match(/[a-zA-Z0-9]/);
+    if (parts.length > 0 && (!isChar || parts.length > 1)) {
+        settings.shortcut = parts.join('+');
+    } else {
+        settings.shortcut = previousShortcut;
+    }
+
+    isRecording = false;
+    window.removeEventListener('keydown', handleShortcutKeydown, { capture: true });
+  };
+
+  function startRecording() {
+    previousShortcut = settings.shortcut;
+    isRecording = true;
+    settings.shortcut = $_('settings.appSettings.shortcutRecording');
+    window.addEventListener('keydown', handleShortcutKeydown, { capture: true });
+  }
+
+  function cancelRecording() {
+    isRecording = false;
+    settings.shortcut = previousShortcut;
+    window.removeEventListener('keydown', handleShortcutKeydown, { capture: true });
+  }
 
   onMount(() => {
     invoke('get_settings').then((loadedSettings) => {
@@ -26,12 +85,15 @@
       message = $_('settings.messages.loadError', { values: { error: e }});
     });
 
-    const unsubscribe = theme.subscribe(value => {
+    const unsubscribeTheme = theme.subscribe(value => {
       currentTheme = value;
       actualTheme = getActualTheme(value);
     });
 
-    return unsubscribe;
+    return () => {
+        unsubscribeTheme();
+        window.removeEventListener('keydown', handleShortcutKeydown, { capture: true });
+    };
   });
 
   async function handleSave() {
@@ -74,6 +136,14 @@
       locale.set(lang);
     }
   }
+
+  function toggleSection(section: string) {
+      if (openSection === section) {
+          openSection = '';
+      } else {
+          openSection = section;
+      }
+  }
 </script>
 
 <main class="glass">
@@ -91,72 +161,97 @@
     
     <div class="settings-content">
       <div class="settings-section">
-        <h3>{$_('settings.aiConfig.title')}</h3>
-        <div class="form-group">
-          <label for="system-prompt">{$_('settings.aiConfig.systemPrompt')}</label>
-          <textarea id="system-prompt" bind:value={settings.system_prompt} rows="4" placeholder={$_('settings.aiConfig.systemPromptPlaceholder')}></textarea>
-        </div>
+        <h3 class="accordion-header" onclick={() => toggleSection('aiConfig')}>
+          {$_('settings.aiConfig.title')}
+          <span class="chevron {openSection === 'aiConfig' ? 'open' : ''}"></span>
+        </h3>
+        {#if openSection === 'aiConfig'}
+        <div class="accordion-content">
+            <div class="form-group">
+              <label for="system-prompt">{$_('settings.aiConfig.systemPrompt')}</label>
+              <textarea id="system-prompt" bind:value={settings.system_prompt} rows="3" placeholder={$_('settings.aiConfig.systemPromptPlaceholder')}></textarea>
+            </div>
 
-        <div class="form-group">
-          <label for="api-type">{$_('settings.aiConfig.apiType')}</label>
-          <select id="api-type" bind:value={settings.api_type}>
-            <option value="openai">{$_('settings.aiConfig.openai')}</option>
-            <option value="openai-compatible">{$_('settings.aiConfig.openaiCompatible')}</option>
-          </select>
-        </div>
+            <div class="form-group">
+              <label for="api-type">{$_('settings.aiConfig.apiType')}</label>
+              <select id="api-type" bind:value={settings.api_type}>
+                <option value="openai">{$_('settings.aiConfig.openai')}</option>
+                <option value="openai-compatible">{$_('settings.aiConfig.openaiCompatible')}</option>
+              </select>
+            </div>
 
-        <div class="form-group">
-          <label for="api-key">{$_('settings.aiConfig.apiKey')}</label>
-          <input id="api-key" type="password" bind:value={settings.api_key} placeholder={$_('settings.aiConfig.apiKeyPlaceholder')} />
-        </div>
+            <div class="form-group">
+              <label for="api-key">{$_('settings.aiConfig.apiKey')}</label>
+              <input id="api-key" type="password" bind:value={settings.api_key} placeholder={$_('settings.aiConfig.apiKeyPlaceholder')} />
+            </div>
 
-        <div class="form-group">
-          <label for="api-url">{$_('settings.aiConfig.apiEndpoint')}</label>
-          <input 
-            id="api-url" 
-            type="text" 
-            bind:value={settings.api_url} 
-            placeholder={$_('settings.aiConfig.apiEndpointPlaceholder')} 
-            onblur={handleUrlBlur}
-          />
-          <p class="hint">
-            {#if settings.api_url && !settings.api_url.includes('/chat/completions')}
-              {$_('settings.aiConfig.apiEndpointHintSave', { values: { url: normalizeApiUrl(settings.api_url) } })}
-            {:else}
-              {$_('settings.aiConfig.apiEndpointHint')}
-            {/if}
-          </p>
-        </div>
+            <div class="form-group">
+              <label for="api-url">{$_('settings.aiConfig.apiEndpoint')}</label>
+              <input 
+                id="api-url" 
+                type="text" 
+                bind:value={settings.api_url} 
+                placeholder={$_('settings.aiConfig.apiEndpointPlaceholder')} 
+                onblur={handleUrlBlur}
+              />
+              <p class="hint">
+                {#if settings.api_url && !settings.api_url.includes('/chat/completions')}
+                  {$_('settings.aiConfig.apiEndpointHintSave', { values: { url: normalizeApiUrl(settings.api_url) } })}
+                {:else}
+                  {$_('settings.aiConfig.apiEndpointHint')}
+                {/if}
+              </p>
+            </div>
 
-        <div class="form-group">
-          <label for="model-name">{$_('settings.aiConfig.modelName')}</label>
-          <input id="model-name" type="text" bind:value={settings.model_name} placeholder={$_('settings.aiConfig.modelNamePlaceholder')} />
+            <div class="form-group">
+              <label for="model-name">{$_('settings.aiConfig.modelName')}</label>
+              <input id="model-name" type="text" bind:value={settings.model_name} placeholder={$_('settings.aiConfig.modelNamePlaceholder')} />
+            </div>
         </div>
+        {/if}
       </div>
 
       <div class="settings-section">
-        <h3>{$_('settings.appSettings.title')}</h3>
-        <div class="form-group">
-          <label for="shortcut">{$_('settings.appSettings.shortcut')}</label>
-          <input id="shortcut" type="text" bind:value={settings.shortcut} placeholder={$_('settings.appSettings.shortcutPlaceholder')} />
-          <p class="hint">{$_('settings.appSettings.shortcutHint')}</p>
+        <h3 class="accordion-header" onclick={() => toggleSection('appSettings')}>
+            {$_('settings.appSettings.title')}
+            <span class="chevron {openSection === 'appSettings' ? 'open' : ''}"></span>
+        </h3>
+        {#if openSection === 'appSettings'}
+        <div class="accordion-content">
+            <div class="form-group">
+              <label for="shortcut">{$_('settings.appSettings.shortcut')}</label>
+              <div class="shortcut-recorder">
+                <input id="shortcut" type="text" readonly bind:value={settings.shortcut} placeholder={$_('settings.appSettings.shortcutPlaceholder')} />
+                {#if isRecording}
+                    <button class="secondary-button" onclick={cancelRecording}>{$_('settings.appSettings.shortcutCancel')}</button>
+                {:else}
+                    <button class="primary-button" onclick={startRecording}>{$_('settings.appSettings.shortcutRecord')}</button>
+                {/if}
+              </div>
+              {#if isRecording}
+                <p class="hint">{$_('settings.appSettings.shortcutHintRecording')}</p>
+              {:else}
+                <p class="hint">{$_('settings.appSettings.shortcutHint')}</p>
+              {/if}
+            </div>
         </div>
+        {/if}
       </div>
 
-      <div class="settings-section">
-        <h3>{$_('settings.appearance.title')}</h3>
+      <div class="settings-section flat">
+        <h3 class="static-header">{$_('settings.appearance.title')}</h3>
         <div class="theme-options">
-          <button class="theme-option {currentTheme === 'light' ? 'active' : ''}" on:click={() => setTheme('light')} aria-pressed={currentTheme === 'light'}>
+          <button class="theme-option {currentTheme === 'light' ? 'active' : ''}" onclick={() => setTheme('light')} aria-pressed={currentTheme === 'light'}>
             <div class="theme-preview light"></div>
             <span class="theme-label">{$_('settings.appearance.light')}</span>
           </button>
           
-          <button class="theme-option {currentTheme === 'dark' ? 'active' : ''}" on:click={() => setTheme('dark')} aria-pressed={currentTheme === 'dark'}>
+          <button class="theme-option {currentTheme === 'dark' ? 'active' : ''}" onclick={() => setTheme('dark')} aria-pressed={currentTheme === 'dark'}>
             <div class="theme-preview dark"></div>
             <span class="theme-label">{$_('settings.appearance.dark')}</span>
           </button>
           
-          <button class="theme-option {currentTheme === 'auto' ? 'active' : ''}" on:click={() => setTheme('auto')} aria-pressed={currentTheme === 'auto'}>
+          <button class="theme-option {currentTheme === 'auto' ? 'active' : ''}" onclick={() => setTheme('auto')} aria-pressed={currentTheme === 'auto'}>
             <div class="theme-preview auto"></div>
             <span class="theme-label">{$_('settings.appearance.auto')}</span>
             <span class="theme-description">{$_('settings.appearance.followSystem')}</span>
@@ -168,14 +263,14 @@
         </div>
       </div>
 
-      <div class="settings-section">
-        <h3>{$_('settings.language.title')}</h3>
+      <div class="settings-section flat">
+        <h3 class="static-header">{$_('settings.language.title')}</h3>
         <div class="form-group">
             <select 
                 aria-label={$_('settings.language.title')}
                 class="language-select"
                 value={$locale} 
-                on:change={(e) => setLanguage(e.currentTarget.value)}
+                onchange={(e) => setLanguage(e.currentTarget.value)}
             >
                 <option value="en">English</option>
                 <option value="zh-CN">简体中文</option>
@@ -186,7 +281,7 @@
       </div>
 
       <div class="actions">
-        <button on:click={handleSave} class="primary-button">
+        <button onclick={handleSave} class="primary-button">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
             <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -194,7 +289,7 @@
           </svg>
           {$_('settings.actions.save')}
         </button>
-        <button class="secondary-button" on:click={() => invoke('open_config_directory')}>
+        <button class="secondary-button" onclick={() => invoke('open_config_directory')}>
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
             <line x1="16" y1="5" x2="22" y2="5"></line>
@@ -223,22 +318,22 @@
   }
 
   .settings-container {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md);
     height: 100%;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
     box-sizing: border-box;
-    max-width: 500px;
+    max-width: 480px;
     margin: 0 auto;
-    gap: var(--spacing-lg);
+    gap: var(--spacing-sm);
   }
 
   .settings-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: var(--spacing-2xl);
+    margin-bottom: var(--spacing-md);
     position: relative;
   }
 
@@ -266,7 +361,7 @@
   }
 
   h2 {
-    font-size: var(--font-size-3xl);
+    font-size: var(--font-size-2xl);
     font-weight: var(--font-weight-bold);
     margin: 0;
     color: var(--text-primary);
@@ -278,31 +373,61 @@
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-2xl);
+    gap: var(--spacing-sm);
   }
 
   .settings-section {
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-lg);
-    padding: var(--spacing-lg);
     box-shadow: var(--shadow-soft);
+    transition: all var(--transition-fast);
+  }
+  .settings-section.flat {
+      padding: var(--spacing-lg);
   }
 
-  h3 {
-    font-size: var(--font-size-xl);
+  .accordion-header {
+    font-size: var(--font-size-lg);
     font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
-    margin-bottom: var(--spacing-lg);
-    border-bottom: 1px solid var(--border-secondary);
-    padding-bottom: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-lg);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .accordion-content {
+      padding: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
+      animation: fadeIn 0.2s ease-out;
+  }
+
+  .static-header {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .chevron {
+    width: 1em;
+    height: 1em;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: center;
+    transition: transform var(--transition-fast);
+  }
+
+  .chevron.open {
+      transform: rotate(180deg);
   }
 
   .form-group {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-lg);
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
   }
   .form-group:last-child {
       margin-bottom: 0;
@@ -317,8 +442,8 @@
   input, textarea, select {
     border-radius: var(--radius-md);
     border: 1px solid var(--border-primary);
-    padding: var(--spacing-md) var(--spacing-lg);
-    font-size: var(--font-size-base);
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
     font-family: inherit;
     color: var(--text-primary);
     background: var(--bg-primary);
@@ -357,6 +482,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
   }
 
   .primary-button, .secondary-button {
@@ -364,9 +490,9 @@
     align-items: center;
     justify-content: center;
     gap: var(--spacing-sm);
-    padding: var(--spacing-md) var(--spacing-lg);
+    padding: var(--spacing-sm) var(--spacing-md);
     border-radius: var(--radius-md);
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     font-family: inherit;
     cursor: pointer;
@@ -381,8 +507,8 @@
   }
 
   .primary-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px var(--shadow-glow);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-soft);
     background: var(--primary-hover);
   }
 
@@ -421,16 +547,16 @@
   /* Theme Options */
   .theme-options {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
   }
 
   .theme-option {
     cursor: pointer;
     border: 2px solid var(--border-primary);
     border-radius: var(--radius-md);
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);
     transition: var(--transition-normal);
     background: var(--bg-primary);
     text-align: center;
@@ -449,7 +575,7 @@
 
   .theme-preview {
     width: 100%;
-    height: 60px;
+    height: 50px;
     border-radius: var(--radius-sm);
     overflow: hidden;
     margin-bottom: var(--spacing-sm);
@@ -473,37 +599,51 @@
     display: block;
     font-weight: var(--font-weight-medium);
     color: var(--text-primary);
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
   }
 
   .theme-description {
     display: block;
     font-size: var(--font-size-xs);
     color: var(--text-muted);
-    margin-top: var(--spacing-xs);
   }
 
   .current-theme-info {
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);
     background: var(--bg-tertiary);
     border-radius: var(--radius-md);
     border: 1px solid var(--border-primary);
+    margin-top: var(--spacing-md);
   }
 
   .current-theme-info p {
     margin: 0;
     color: var(--text-secondary);
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
+  }
+
+  .shortcut-recorder {
+      display: flex;
+      gap: var(--spacing-sm);
+  }
+
+  .shortcut-recorder input {
+      flex-grow: 1;
+      background-color: var(--bg-tertiary) !important;
+  }
+
+  .shortcut-recorder button {
+      flex-shrink: 0;
   }
 
   /* Responsive design */
   @media (max-width: 640px) {
     .settings-container {
-      padding: var(--spacing-lg);
+      padding: var(--spacing-md);
     }
     
     .settings-section {
-      padding: var(--spacing-lg);
+      padding: var(--spacing-md);
     }
     
     .actions {

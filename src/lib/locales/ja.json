@@ -42,7 +42,11 @@
       "title": "アプリケーション設定",
       "shortcut": "グローバルショートカット",
       "shortcutPlaceholder": "例: Alt+Space",
-      "shortcutHint": "Ctrl, Alt, Shift, Super などの修飾キーを使用し、"+" で区切ります。"
+      "shortcutHint": "Ctrl, Alt, Shift, Super などの修飾キーを使用し、\"+\" で区切ります。",
+      "shortcutRecord": "記録",
+      "shortcutRecording": "記録中...",
+      "shortcutCancel": "キャンセル",
+      "shortcutHintRecording": "目的のキーの組み合わせを押してください... (Escでキャンセル)"
     },
     "appearance": {
       "title": "外観",

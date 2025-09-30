@@ -42,7 +42,11 @@
       "title": "Application Settings",
       "shortcut": "Global Shortcut",
       "shortcutPlaceholder": "e.g., Alt+Space",
-      "shortcutHint": "Use modifiers like Ctrl, Alt, Shift, Super. Separate with \"+\""
+      "shortcutHint": "Use modifiers like Ctrl, Alt, Shift, Super. Separate with \"+\".",
+      "shortcutRecord": "Record",
+      "shortcutRecording": "Recording...",
+      "shortcutCancel": "Cancel",
+      "shortcutHintRecording": "Press the desired key combination... (Esc to cancel)"
     },
     "appearance": {
       "title": "Appearance",

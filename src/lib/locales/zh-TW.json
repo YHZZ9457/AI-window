@@ -42,7 +42,11 @@
       "title": "應用程式設定",
       "shortcut": "全域快捷鍵",
       "shortcutPlaceholder": "例如 Alt+Space",
-      "shortcutHint": "使用 Ctrl, Alt, Shift, Super 等修飾鍵，用 \"+\" 分隔。"
+      "shortcutHint": "使用 Ctrl, Alt, Shift, Super 等修飾鍵，用 \"+\" 分隔。",
+      "shortcutRecord": "錄製",
+      "shortcutRecording": "錄製中...",
+      "shortcutCancel": "取消",
+      "shortcutHintRecording": "請按下您想要的快捷鍵組合... (按 Esc 取消)"
     },
     "appearance": {
       "title": "外觀",
