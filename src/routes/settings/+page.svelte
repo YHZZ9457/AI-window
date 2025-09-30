@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
-  import { _, locale } from 'svelte-i18n';
+  import { _ } from 'svelte-i18n';
 
   let settings = $state({
     api_key: '',
@@ -115,12 +115,6 @@
     return normalizedUrl + '/v1/chat/completions';
   }
 
-  function setLanguage(lang: string | null) {
-    if (lang) {
-      locale.set(lang);
-    }
-  }
-
   function toggleSection(section: string) {
       if (openSection === section) {
           openSection = '';
@@ -220,23 +214,6 @@
             </div>
         </div>
         {/if}
-      </div>
-
-      <div class="settings-section flat">
-        <h3 class="static-header">{$_('settings.language.title')}</h3>
-        <div class="form-group">
-            <select 
-                aria-label={$_('settings.language.title')}
-                class="language-select"
-                value={$locale} 
-                onchange={(e) => setLanguage(e.currentTarget.value)}
-            >
-                <option value="en">English</option>
-                <option value="zh-CN">简体中文</option>
-                <option value="zh-TW">繁體中文</option>
-                <option value="ja">日本語</option>
-            </select>
-        </div>
       </div>
 
       <div class="actions">

@@ -16,7 +16,8 @@
       "clear": "Clear Chat",
       "export": "Export Chat",
       "theme": "Toggle theme",
-      "settings": "Settings"
+      "settings": "Settings",
+      "language": "Change language"
     }
   },
   "settings": {
@@ -47,14 +48,6 @@
       "shortcutRecording": "Recording...",
       "shortcutCancel": "Cancel",
       "shortcutHintRecording": "Press the desired key combination... (Esc to cancel)"
-    },
-    "appearance": {
-      "title": "Appearance",
-      "light": "Light",
-      "dark": "Dark",
-      "auto": "Auto",
-      "followSystem": "Follow system",
-      "currentTheme": "Current theme: <strong>{actualTheme}</strong> {currentTheme, select, auto {(system preference)} other {}}"
     },
     "language": {
       "title": "Language"

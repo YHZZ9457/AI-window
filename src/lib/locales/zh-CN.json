@@ -16,7 +16,8 @@
       "clear": "清空对话",
       "export": "导出对话",
       "theme": "切换主题",
-      "settings": "设置"
+      "settings": "设置",
+      "language": "切换语言"
     }
   },
   "settings": {
@@ -47,14 +48,6 @@
       "shortcutRecording": "录制中...",
       "shortcutCancel": "取消",
       "shortcutHintRecording": "请按下您想要的快捷键组合... (按 Esc 取消)"
-    },
-    "appearance": {
-      "title": "外观",
-      "light": "浅色",
-      "dark": "深色",
-      "auto": "自动",
-      "followSystem": "跟随系统",
-      "currentTheme": "当前主题: <strong>{actualTheme}</strong> {currentTheme, select, auto {(系统偏好)} other {}}"
     },
     "language": {
       "title": "语言"

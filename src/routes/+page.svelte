@@ -5,7 +5,7 @@
   import { save } from '@tauri-apps/plugin-dialog';
   import { writeTextFile } from '@tauri-apps/plugin-fs';
   import { theme } from '$lib/stores/theme';
-  import { _ } from 'svelte-i18n';
+  import { _, locale } from 'svelte-i18n';
 
   let appWindow: WebviewWindow | null = null;
 
@@ -20,6 +20,8 @@
   ]);
   let isLoading = $state(false);
   let outputAreaElement: HTMLElement;
+  let showLanguageMenu = $state(false);
+  let languageMenuElement: HTMLElement;
 
   function scrollToBottom() {
     if (outputAreaElement) {
@@ -69,6 +71,11 @@
     });
   }
 
+  function setLanguage(lang: string) {
+    locale.set(lang);
+    showLanguageMenu = false;
+  }
+
   async function exportToJSON() {
     const chatData = {
       exportDate: new Date().toISOString(),
@@ -108,11 +115,20 @@
         appWindow.hide();
       }
     };
+
+    const handleClickOutside = (event: MouseEvent) => {
+        if (languageMenuElement && !languageMenuElement.contains(event.target as Node)) {
+            showLanguageMenu = false;
+        }
+    };
+
     document.addEventListener('keydown', handleKey);
+    document.addEventListener('click', handleClickOutside, true);
     scrollToBottom();
 
     return () => {
       document.removeEventListener('keydown', handleKey);
+      document.removeEventListener('click', handleClickOutside, true);
     };
   });
 </script>
@@ -156,6 +172,25 @@
           <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
         </svg>
       </button>
+
+      <div class="language-menu-container" bind:this={languageMenuElement}>
+        <button onclick={() => showLanguageMenu = !showLanguageMenu} class="header-button" title={$_('home.buttons.language')}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+        </button>
+        {#if showLanguageMenu}
+            <div class="language-menu">
+                <button class:active={$locale === 'en'} onclick={() => setLanguage('en')}>English</button>
+                <button class:active={$locale === 'zh-CN'} onclick={() => setLanguage('zh-CN')}>简体中文</button>
+                <button class:active={$locale === 'zh-TW'} onclick={() => setLanguage('zh-TW')}>繁體中文</button>
+                <button class:active={$locale === 'ja'} onclick={() => setLanguage('ja')}>日本語</button>
+            </div>
+        {/if}
+      </div>
+
       <a href="/settings" class="header-button" title={$_('home.buttons.settings')} aria-label={$_('home.buttons.settings')}>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"></circle>
@@ -281,6 +316,7 @@
   .header-buttons {
     display: flex;
     gap: var(--spacing-sm);
+    align-items: center;
   }
 
   .header-button {
@@ -306,6 +342,47 @@
 
   .header-button:active {
     transform: translateY(0);
+  }
+
+  .language-menu-container {
+      position: relative;
+  }
+
+  .language-menu {
+      position: absolute;
+      top: calc(100% + var(--spacing-sm));
+      right: 0;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-sm);
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
+      z-index: var(--z-dropdown);
+      box-shadow: var(--shadow-soft);
+      width: max-content;
+  }
+
+  .language-menu button {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+      font-size: var(--font-size-sm);
+  }
+
+  .language-menu button:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+  }
+  .language-menu button.active {
+      color: var(--text-primary);
+      font-weight: var(--font-weight-medium);
   }
 
   .chat-container {

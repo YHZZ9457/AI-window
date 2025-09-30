@@ -16,7 +16,8 @@
       "clear": "チャットをクリア",
       "export": "チャットをエクスポート",
       "theme": "テーマを切り替え",
-      "settings": "設定"
+      "settings": "設定",
+      "language": "言語を切り替える"
     }
   },
   "settings": {
@@ -47,14 +48,6 @@
       "shortcutRecording": "記録中...",
       "shortcutCancel": "キャンセル",
       "shortcutHintRecording": "目的のキーの組み合わせを押してください... (Escでキャンセル)"
-    },
-    "appearance": {
-      "title": "外観",
-      "light": "ライト",
-      "dark": "ダーク",
-      "auto": "自動",
-      "followSystem": "システムに従う",
-      "currentTheme": "現在のテーマ: <strong>{actualTheme}</strong> {currentTheme, select, auto {(システム設定)} other {}}"
     },
     "language": {
       "title": "言語"
