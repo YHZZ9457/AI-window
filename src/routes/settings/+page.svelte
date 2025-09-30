@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
-  import { theme, getActualTheme } from '$lib/stores/theme';
   import { _, locale } from 'svelte-i18n';
 
   let settings = $state({
@@ -13,8 +12,6 @@
     api_type: 'openai'
   });
   let message = $state('');
-  let currentTheme: 'light' | 'dark' | 'auto' = $state('auto');
-  let actualTheme: 'light' | 'dark' = $state('light');
   let openSection = $state('aiConfig'); // aiConfig, appSettings
   let isRecording = $state(false);
   let previousShortcut = '';
@@ -28,7 +25,6 @@
       return;
     }
 
-    // Ignore modifier-only key presses
     if (['Control', 'Alt', 'Shift', 'Meta'].includes(event.key)) {
         return;
     }
@@ -49,8 +45,6 @@
     }
     parts.push(finalKey);
 
-    // A valid shortcut should have a non-modifier key.
-    // We also prevent single character shortcuts unless they are function keys.
     const isChar = event.key.length === 1 && event.key.match(/[a-zA-Z0-9]/);
     if (parts.length > 0 && (!isChar || parts.length > 1)) {
         settings.shortcut = parts.join('+');
@@ -85,13 +79,7 @@
       message = $_('settings.messages.loadError', { values: { error: e }});
     });
 
-    const unsubscribeTheme = theme.subscribe(value => {
-      currentTheme = value;
-      actualTheme = getActualTheme(value);
-    });
-
     return () => {
-        unsubscribeTheme();
         window.removeEventListener('keydown', handleShortcutKeydown, { capture: true });
     };
   });
@@ -125,10 +113,6 @@
     if (normalizedUrl.endsWith('/chat')) return normalizedUrl + '/completions';
     if (normalizedUrl.includes('api.deepseek.com')) return normalizedUrl + '/v1/chat/completions';
     return normalizedUrl + '/v1/chat/completions';
-  }
-
-  function setTheme(newTheme: 'light' | 'dark' | 'auto') {
-    theme.set(newTheme);
   }
 
   function setLanguage(lang: string | null) {
@@ -236,31 +220,6 @@
             </div>
         </div>
         {/if}
-      </div>
-
-      <div class="settings-section flat">
-        <h3 class="static-header">{$_('settings.appearance.title')}</h3>
-        <div class="theme-options">
-          <button class="theme-option {currentTheme === 'light' ? 'active' : ''}" onclick={() => setTheme('light')} aria-pressed={currentTheme === 'light'}>
-            <div class="theme-preview light"></div>
-            <span class="theme-label">{$_('settings.appearance.light')}</span>
-          </button>
-          
-          <button class="theme-option {currentTheme === 'dark' ? 'active' : ''}" onclick={() => setTheme('dark')} aria-pressed={currentTheme === 'dark'}>
-            <div class="theme-preview dark"></div>
-            <span class="theme-label">{$_('settings.appearance.dark')}</span>
-          </button>
-          
-          <button class="theme-option {currentTheme === 'auto' ? 'active' : ''}" onclick={() => setTheme('auto')} aria-pressed={currentTheme === 'auto'}>
-            <div class="theme-preview auto"></div>
-            <span class="theme-label">{$_('settings.appearance.auto')}</span>
-            <span class="theme-description">{$_('settings.appearance.followSystem')}</span>
-          </button>
-        </div>
-        
-        <div class="current-theme-info">
-          <p>{@html $_('settings.appearance.currentTheme', { values: { actualTheme: actualTheme, currentTheme: currentTheme }})}</p>
-        </div>
       </div>
 
       <div class="settings-section flat">
@@ -544,84 +503,6 @@
     border: 1px solid rgba(239, 68, 68, 0.3);
   }
 
-  /* Theme Options */
-  .theme-options {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-md);
-  }
-
-  .theme-option {
-    cursor: pointer;
-    border: 2px solid var(--border-primary);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-sm);
-    transition: var(--transition-normal);
-    background: var(--bg-primary);
-    text-align: center;
-  }
-
-  .theme-option:hover {
-    border-color: var(--primary);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-soft);
-  }
-
-  .theme-option.active {
-    border-color: var(--primary);
-    background: var(--bg-tertiary);
-  }
-
-  .theme-preview {
-    width: 100%;
-    height: 50px;
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    margin-bottom: var(--spacing-sm);
-    border: 1px solid var(--border-primary);
-    background-color: var(--bg-primary);
-  }
-
-  .theme-preview.light {
-    background: #ffffff;
-  }
-
-  .theme-preview.dark {
-    background: #0f172a;
-  }
-
-  .theme-preview.auto {
-    background: linear-gradient(135deg, #ffffff 50%, #0f172a 50%);
-  }
-
-  .theme-label {
-    display: block;
-    font-weight: var(--font-weight-medium);
-    color: var(--text-primary);
-    font-size: var(--font-size-xs);
-  }
-
-  .theme-description {
-    display: block;
-    font-size: var(--font-size-xs);
-    color: var(--text-muted);
-  }
-
-  .current-theme-info {
-    padding: var(--spacing-sm);
-    background: var(--bg-tertiary);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-primary);
-    margin-top: var(--spacing-md);
-  }
-
-  .current-theme-info p {
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: var(--font-size-xs);
-  }
-
   .shortcut-recorder {
       display: flex;
       gap: var(--spacing-sm);
@@ -648,10 +529,6 @@
     
     .actions {
       flex-direction: column;
-    }
-    
-    .theme-options {
-      grid-template-columns: 1fr;
     }
   }
 </style>
