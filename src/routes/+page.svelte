@@ -111,8 +111,36 @@
     });
     
     const handleKey = (e: KeyboardEvent) => {
+      // Hide window with Escape
       if (e.key === 'Escape' && appWindow) {
         appWindow.hide();
+      }
+      
+      // Clear chat with Ctrl+Shift+C or Cmd+Shift+C
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        clearChat();
+      }
+      
+      // Export chat with Ctrl+Shift+E or Cmd+Shift+E
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'E') {
+        e.preventDefault();
+        exportToJSON();
+      }
+      
+      // Toggle theme with Ctrl+Shift+T or Cmd+Shift+T
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
+        e.preventDefault();
+        toggleTheme();
+      }
+      
+      // Focus input with Ctrl+/ or Cmd+/
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        const input = document.querySelector('.message-input') as HTMLInputElement;
+        if (input) {
+          input.focus();
+        }
       }
     };
 
@@ -144,7 +172,7 @@
       <h1 class="title">{$_('home.title')}</h1>
     </div>
     <div class="header-buttons">
-      <button onclick={clearChat} class="header-button" aria-label={$_('home.buttons.clear')} title={$_('home.buttons.clear')}>
+      <button onclick={clearChat} class="header-button" aria-label={$_('home.buttons.clear')} title={`${$_('home.buttons.clear')} (Ctrl+Shift+C)`}>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="3 6 5 6 21 6"></polyline>
           <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -152,14 +180,14 @@
           <line x1="14" y1="11" x2="14" y2="17"></line>
         </svg>
       </button>
-      <button onclick={exportToJSON} class="header-button" aria-label={$_('home.buttons.export')} title={$_('home.buttons.export')}>
+      <button onclick={exportToJSON} class="header-button" aria-label={$_('home.buttons.export')} title={`${$_('home.buttons.export')} (Ctrl+Shift+E)`}>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
       </button>
-      <button onclick={toggleTheme} class="header-button" title={$_('home.buttons.theme')} aria-label={$_('home.buttons.theme')}>
+      <button onclick={toggleTheme} class="header-button" title={`${$_('home.buttons.theme')} (Ctrl+Shift+T)`} aria-label={$_('home.buttons.theme')}>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="5"></circle>
           <line x1="12" y1="1" x2="12" y2="3"></line>
@@ -249,7 +277,7 @@
         <input 
           type="text" 
           class="message-input"
-          placeholder={$_('home.placeholder')} 
+          placeholder={`${$_('home.placeholder')} (Ctrl+/ to focus)`} 
           bind:value={prompt}
           onkeydown={(e) => e.key === 'Enter' && handleSubmit()}
           disabled={isLoading}
