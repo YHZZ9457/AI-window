@@ -14,6 +14,7 @@
     "ai": "AI",
     "buttons": {
       "clear": "清空對話",
+      "deleteAll": "刪除全部",
       "export": "匯出對話",
       "theme": "切換主題",
       "settings": "設定",
@@ -47,7 +48,9 @@
       "shortcutRecord": "錄製",
       "shortcutRecording": "錄製中...",
       "shortcutCancel": "取消",
-      "shortcutHintRecording": "請按下您想要的快捷鍵組合... (按 Esc 取消)"
+      "shortcutHintRecording": "請按下您想要的快捷鍵組合... (按 Esc 取消)",
+      "clearChatShortcut": "清空聊天快捷鍵",
+      "clearChatShortcutHint": "錄製清空聊天訊息的鍵盤快捷鍵"
     },
     "language": {
       "title": "語言"

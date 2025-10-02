@@ -14,6 +14,7 @@
     "ai": "AI",
     "buttons": {
       "clear": "Clear Chat",
+      "deleteAll": "Delete All",
       "export": "Export Chat",
       "theme": "Toggle theme",
       "settings": "Settings",
@@ -47,7 +48,9 @@
       "shortcutRecord": "Record",
       "shortcutRecording": "Recording...",
       "shortcutCancel": "Cancel",
-      "shortcutHintRecording": "Press the desired key combination... (Esc to cancel)"
+      "shortcutHintRecording": "Press the desired key combination... (Esc to cancel)",
+      "clearChatShortcut": "Clear Chat Shortcut",
+      "clearChatShortcutHint": "Record a keyboard shortcut for clearing chat messages"
     },
     "language": {
       "title": "Language"

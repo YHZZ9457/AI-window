@@ -14,6 +14,7 @@
     "ai": "AI",
     "buttons": {
       "clear": "清空对话",
+      "deleteAll": "删除全部",
       "export": "导出对话",
       "theme": "切换主题",
       "settings": "设置",
@@ -47,7 +48,9 @@
       "shortcutRecord": "录制",
       "shortcutRecording": "录制中...",
       "shortcutCancel": "取消",
-      "shortcutHintRecording": "请按下您想要的快捷键组合... (按 Esc 取消)"
+      "shortcutHintRecording": "请按下您想要的快捷键组合... (按 Esc 取消)",
+      "clearChatShortcut": "清空聊天快捷键",
+      "clearChatShortcutHint": "录制清空聊天消息的键盘快捷键"
     },
     "language": {
       "title": "语言"

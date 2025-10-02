@@ -1,24 +1,65 @@
-<script>
+<script lang="ts">
   import '../app.css';
   import { theme, applyTheme, watchSystemTheme } from '$lib/stores/theme';
   import { onMount } from 'svelte';
   import { _, isLoading } from 'svelte-i18n';
+  import { chat } from '$lib/stores/chat.store';
+  import { clearChatShortcut } from '$lib/stores/settings.store';
+
+  // Reactive statement to initialize chat when i18n is ready.
+  // This is safe for both SSR and client-side.
+  $: if (!$isLoading) {
+    chat.setInitial($_('home.initialMessage'));
+  }
 
   onMount(() => {
     // Apply initial theme
-    const unsubscribe = theme.subscribe(currentTheme => {
+    const unsubscribeTheme = theme.subscribe(currentTheme => {
       applyTheme(currentTheme);
     });
 
     // Watch for system theme changes
-    const cleanup = watchSystemTheme();
+    const cleanupTheme = watchSystemTheme();
 
     return () => {
-      unsubscribe();
-      cleanup();
+      unsubscribeTheme();
+      cleanupTheme();
     };
   });
+
+  function handleKeyDown(event: KeyboardEvent) {
+    const currentShortcut = getCurrentShortcut(event);
+    if (currentShortcut === $clearChatShortcut) {
+      event.preventDefault();
+      chat.clearChat($_('home.initialMessage'));
+    }
+  }
+
+  function getCurrentShortcut(e: KeyboardEvent): string {
+    const parts = [];
+    if (e.ctrlKey || e.metaKey) parts.push('Ctrl');
+    if (e.altKey) parts.push('Alt');
+    if (e.shiftKey) parts.push('Shift');
+    if (e.metaKey && !e.ctrlKey) parts.push('Super');
+
+    const key = e.key.toUpperCase();
+    let finalKey = key;
+    if (key.startsWith('ARROW')) {
+      finalKey = key.substring(5);
+    }
+    if (finalKey === ' ') {
+      finalKey = 'SPACE';
+    }
+    
+    if (!['CONTROL', 'ALT', 'SHIFT', 'META'].includes(finalKey)) {
+        parts.push(finalKey);
+    }
+    
+    return parts.join('+');
+  }
 </script>
+
+<svelte:window on:keydown={handleKeyDown} />
 
 <svelte:head>
   {#if !$isLoading}

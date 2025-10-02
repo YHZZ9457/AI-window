@@ -110,6 +110,7 @@ Configure API keys, model settings, and shortcuts
 
 - `Enter` - Send message / 发送消息
 - `Escape` - Hide window / 隐藏窗口
+- `Ctrl+Q` (default) - Clear chat (configurable) / 清空对话（可自定义）
 - Custom global shortcut (configurable) / 可自定义的全局快捷键
 
 ### Theme Management / 主题管理

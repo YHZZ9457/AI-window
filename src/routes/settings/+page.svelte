@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { _ } from 'svelte-i18n';
+  import { clearChatShortcut } from '$lib/stores/settings.store';
 
   let settings = $state({
     api_key: '',
@@ -14,7 +15,9 @@
   let message = $state('');
   let openSection = $state('aiConfig'); // aiConfig, appSettings
   let isRecording = $state(false);
+  let isRecordingClearChat = $state(false);
   let previousShortcut = '';
+  let previousClearChatShortcut = '';
 
   const handleShortcutKeydown = (event: KeyboardEvent) => {
     event.preventDefault();
@@ -69,9 +72,66 @@
     window.removeEventListener('keydown', handleShortcutKeydown, { capture: true });
   }
 
+  const handleClearChatShortcutKeydown = (event: KeyboardEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.key === 'Escape') {
+      cancelClearChatRecording();
+      return;
+    }
+
+    if (['Control', 'Alt', 'Shift', 'Meta'].includes(event.key)) {
+        return;
+    }
+
+    const parts = [];
+    if (event.ctrlKey) parts.push('Ctrl');
+    if (event.altKey) parts.push('Alt');
+    if (event.shiftKey) parts.push('Shift');
+    if (event.metaKey) parts.push('Super');
+
+    const key = event.key.toUpperCase();
+    let finalKey = key;
+    if (key.startsWith('ARROW')) {
+        finalKey = key.substring(5);
+    }
+    if (finalKey === ' ') {
+        finalKey = 'SPACE';
+    }
+    parts.push(finalKey);
+
+    const isChar = event.key.length === 1 && event.key.match(/[a-zA-Z0-9]/);
+    if (parts.length > 0 && (!isChar || parts.length > 1)) {
+      clearChatShortcut.set(parts.join('+'));
+    } else {
+      clearChatShortcut.set(previousClearChatShortcut);
+    }
+
+    isRecordingClearChat = false;
+    window.removeEventListener('keydown', handleClearChatShortcutKeydown, { capture: true });
+  };
+
+  function startClearChatRecording() {
+    previousClearChatShortcut = $clearChatShortcut;
+    isRecordingClearChat = true;
+    clearChatShortcut.set($_('settings.appSettings.shortcutRecording'));
+    window.addEventListener('keydown', handleClearChatShortcutKeydown, { capture: true });
+  }
+
+  function cancelClearChatRecording() {
+    isRecordingClearChat = false;
+    clearChatShortcut.set(previousClearChatShortcut);
+    window.removeEventListener('keydown', handleClearChatShortcutKeydown, { capture: true });
+  }
+
   onMount(() => {
-    invoke('get_settings').then((loadedSettings) => {
-      settings = { ...settings, ...loadedSettings as typeof settings };
+    invoke('get_settings').then((loadedSettings: any) => {
+      const { clear_chat_shortcut, ...rest } = loadedSettings;
+      settings = { ...settings, ...rest };
+      if (clear_chat_shortcut != null) {
+        clearChatShortcut.set(clear_chat_shortcut);
+      }
       if (settings.api_url && !settings.api_url.includes('/chat/completions')) {
         settings.api_url = normalizeApiUrl(settings.api_url);
       }
@@ -81,12 +141,13 @@
 
     return () => {
         window.removeEventListener('keydown', handleShortcutKeydown, { capture: true });
+        window.removeEventListener('keydown', handleClearChatShortcutKeydown, { capture: true });
     };
   });
 
   async function handleSave() {
     try {
-      const processedSettings = { ...settings };
+      const processedSettings = { ...settings, clear_chat_shortcut: $clearChatShortcut };
       processedSettings.api_url = normalizeApiUrl(processedSettings.api_url);
       
       await invoke('set_settings', { settings: processedSettings });
@@ -210,6 +271,23 @@
                 <p class="hint">{$_('settings.appSettings.shortcutHintRecording')}</p>
               {:else}
                 <p class="hint">{$_('settings.appSettings.shortcutHint')}</p>
+              {/if}
+            </div>
+
+            <div class="form-group">
+              <label for="clear-chat-shortcut">{$_('settings.appSettings.clearChatShortcut')}</label>
+              <div class="shortcut-recorder">
+                <input id="clear-chat-shortcut" type="text" readonly bind:value={$clearChatShortcut} />
+                {#if isRecordingClearChat}
+                    <button class="secondary-button" onclick={cancelClearChatRecording}>{$_('settings.appSettings.shortcutCancel')}</button>
+                {:else}
+                    <button class="primary-button" onclick={startClearChatRecording}>{$_('settings.appSettings.shortcutRecord')}</button>
+                {/if}
+              </div>
+              {#if isRecordingClearChat}
+                <p class="hint">{$_('settings.appSettings.shortcutHintRecording')}</p>
+              {:else}
+                <p class="hint">{$_('settings.appSettings.clearChatShortcutHint')}</p>
               {/if}
             </div>
         </div>

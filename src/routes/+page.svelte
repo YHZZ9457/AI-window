@@ -1,11 +1,13 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   import { invoke } from '@tauri-apps/api/core';
   import { save } from '@tauri-apps/plugin-dialog';
   import { writeTextFile } from '@tauri-apps/plugin-fs';
   import { theme } from '$lib/stores/theme';
   import { _, locale } from 'svelte-i18n';
+  import { chat } from '$lib/stores/chat.store';
+  import { clearChatShortcut } from '$lib/stores/settings.store';
 
   let appWindow: WebviewWindow | null = null;
 
@@ -15,9 +17,6 @@
   };
 
   let prompt = $state('');
-  let messages = $state<Message[]>([
-    { role: 'assistant', content: $_('home.initialMessage') }
-  ]);
   let isLoading = $state(false);
   let outputAreaElement: HTMLElement;
   let showLanguageMenu = $state(false);
@@ -30,7 +29,7 @@
   }
 
   $effect(() => {
-    if (messages) {
+    if ($chat) {
       scrollToBottom();
     }
   });
@@ -38,29 +37,20 @@
   async function handleSubmit() {
     if (!prompt || isLoading) return;
 
-    const userMessage: Message = { role: 'user', content: prompt };
+    const userMessageContent = prompt;
     prompt = '';
-
-    if (messages.length === 1 && messages[0].content === $_('home.initialMessage')) {
-      messages = [userMessage];
-    } else {
-      messages = [...messages, userMessage];
-    }
+    chat.addUserMessage(userMessageContent);
 
     isLoading = true;
 
     try {
-      const result = await invoke('ask_ai', { messages });
-      messages = [...messages, { role: 'assistant', content: result as string }];
+      const result = await invoke('ask_ai', { messages: $chat });
+      chat.addAssistantMessage(result as string);
     } catch (error) {
-      messages = [...messages, { role: 'assistant', content: `Error: ${error}` }];
+      chat.addAssistantMessage(`Error: ${error}`);
     } finally {
       isLoading = false;
     }
-  }
-
-  function clearChat() {
-    messages = [{ role: 'assistant', content: $_('home.initialMessage') }];
   }
 
   function toggleTheme() {
@@ -79,8 +69,8 @@
   async function exportToJSON() {
     const chatData = {
       exportDate: new Date().toISOString(),
-      messageCount: messages.length,
-      messages: messages
+      messageCount: $chat.length,
+      messages: $chat
     };
     
     const jsonContent = JSON.stringify(chatData, null, 2);
@@ -111,30 +101,20 @@
     });
     
     const handleKey = (e: KeyboardEvent) => {
-      // Hide window with Escape
       if (e.key === 'Escape' && appWindow) {
         appWindow.hide();
       }
       
-      // Clear chat with Ctrl+Shift+C or Cmd+Shift+C
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'C') {
-        e.preventDefault();
-        clearChat();
-      }
-      
-      // Export chat with Ctrl+Shift+E or Cmd+Shift+E
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'E') {
         e.preventDefault();
         exportToJSON();
       }
       
-      // Toggle theme with Ctrl+Shift+T or Cmd+Shift+T
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
         e.preventDefault();
         toggleTheme();
       }
       
-      // Focus input with Ctrl+/ or Cmd+/
       if ((e.ctrlKey || e.metaKey) && e.key === '/') {
         e.preventDefault();
         const input = document.querySelector('.message-input') as HTMLInputElement;
@@ -172,7 +152,7 @@
       <h1 class="title">{$_('home.title')}</h1>
     </div>
     <div class="header-buttons">
-      <button onclick={clearChat} class="header-button" aria-label={$_('home.buttons.clear')} title={`${$_('home.buttons.clear')} (Ctrl+Shift+C)`}>
+      <button onclick={() => chat.clearChat($_('home.initialMessage'))} class="header-button" aria-label={$_('home.buttons.clear')} title={`${$_('home.buttons.clear')} (${$clearChatShortcut})`}>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="3 6 5 6 21 6"></polyline>
           <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -202,7 +182,7 @@
       </button>
 
       <div class="language-menu-container" bind:this={languageMenuElement}>
-        <button onclick={() => showLanguageMenu = !showLanguageMenu} class="header-button" title={$_('home.buttons.language')}>
+        <button onclick={() => showLanguageMenu = !showLanguageMenu} class="header-button" title={$_('home.buttons.language')} aria-label={$_('home.buttons.language')}>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="2" y1="12" x2="22" y2="12"></line>
@@ -230,7 +210,7 @@
   
   <div class="chat-container">
     <div class="messages-container glass-light" bind:this={outputAreaElement}>
-      {#each messages as message, i (i)}
+      {#each $chat as message, i (i)}
         <div class="message" class:user={message.role === 'user'} class:assistant={message.role === 'assistant'}>
           <div class="message-header">
             <div class="role-icon">
