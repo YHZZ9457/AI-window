@@ -197,9 +197,21 @@
               {#if message.role === 'user'}
                 <UserIcon />
               {:else}
-                                <AiIcon />
-                              {:else}
-                                <AiIcon />            </div>
+                <AiIcon />
+              {/if}
+            </div>
+            <span class="role">{message.role === 'user' ? $_('home.you') : $_('home.ai')}</span>
+            <span class="timestamp">{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+          </div>
+          <div class="content">{message.content}</div>
+        </div>
+      {/each}
+      {#if isLoading}
+        <div class="message assistant loading-message">
+          <div class="message-header">
+            <div class="role-icon">
+              <AiIcon />
+            </div>
             <span class="role">{$_('home.ai')}</span>
           </div>
           <div class="content">
