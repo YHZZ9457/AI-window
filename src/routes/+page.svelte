@@ -1,4 +1,14 @@
 <script lang="ts">
+  import SendIcon from '$lib/components/icons/SendIcon.svelte';
+  import LoadingIcon from '$lib/components/icons/LoadingIcon.svelte';
+  import AiIcon from '$lib/components/icons/AiIcon.svelte';
+  import UserIcon from '$lib/components/icons/UserIcon.svelte';
+  import SettingsIcon from '$lib/components/icons/SettingsIcon.svelte';
+  import LanguageIcon from '$lib/components/icons/LanguageIcon.svelte';
+  import ThemeIcon from '$lib/components/icons/ThemeIcon.svelte';
+  import ExportIcon from '$lib/components/icons/ExportIcon.svelte';
+  import ClearIcon from '$lib/components/icons/ClearIcon.svelte';
+  import LogoIcon from '$lib/components/icons/LogoIcon.svelte';
   import { onMount, onDestroy } from 'svelte';
   import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   import { invoke } from '@tauri-apps/api/core';
@@ -144,50 +154,23 @@
 <main data-tauri-drag-region class="glass">
   <div class="header">
     <div class="header-left">
-      <svg class="logo" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-        <path d="M2 17l10 5 10-5"></path>
-        <path d="M2 12l10 5 10-5"></path>
-      </svg>
+      <LogoIcon />
       <h1 class="title">{$_('home.title')}</h1>
     </div>
     <div class="header-buttons">
       <button onclick={() => chat.clearChat($_('home.initialMessage'))} class="header-button" aria-label={$_('home.buttons.clear')} title={`${$_('home.buttons.clear')} (${$clearChatShortcut})`}>
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-          <line x1="10" y1="11" x2="10" y2="17"></line>
-          <line x1="14" y1="11" x2="14" y2="17"></line>
-        </svg>
+        <ClearIcon />
       </button>
       <button onclick={exportToJSON} class="header-button" aria-label={$_('home.buttons.export')} title={`${$_('home.buttons.export')} (Ctrl+Shift+E)`}>
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-          <polyline points="7 10 12 15 17 10"></polyline>
-          <line x1="12" y1="15" x2="12" y2="3"></line>
-        </svg>
+        <ExportIcon />
       </button>
       <button onclick={toggleTheme} class="header-button" title={`${$_('home.buttons.theme')} (Ctrl+Shift+T)`} aria-label={$_('home.buttons.theme')}>
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="5"></circle>
-          <line x1="12" y1="1" x2="12" y2="3"></line>
-          <line x1="12" y1="21" x2="12" y2="23"></line>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-          <line x1="1" y1="12" x2="3" y2="12"></line>
-          <line x1="21" y1="12" x2="23" y2="12"></line>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-        </svg>
+        <ThemeIcon />
       </button>
 
       <div class="language-menu-container" bind:this={languageMenuElement}>
         <button onclick={() => showLanguageMenu = !showLanguageMenu} class="header-button" title={$_('home.buttons.language')} aria-label={$_('home.buttons.language')}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="2" y1="12" x2="22" y2="12"></line>
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-            </svg>
+            <LanguageIcon />
         </button>
         {#if showLanguageMenu}
             <div class="language-menu">
@@ -200,10 +183,7 @@
       </div>
 
       <a href="/settings" class="header-button" title={$_('home.buttons.settings')} aria-label={$_('home.buttons.settings')}>
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-        </svg>
+        <SettingsIcon />
       </a>
     </div>
   </div>
@@ -215,30 +195,11 @@
           <div class="message-header">
             <div class="role-icon">
               {#if message.role === 'user'}
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
+                <UserIcon />
               {:else}
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path>
-                </svg>
-              {/if}
-            </div>
-            <span class="role">{message.role === 'user' ? $_('home.you') : $_('home.ai')}</span>
-            <span class="timestamp">{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-          </div>
-          <div class="content">{message.content}</div>
-        </div>
-      {/each}
-      {#if isLoading}
-        <div class="message assistant loading-message">
-          <div class="message-header">
-            <div class="role-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path>
-              </svg>
-            </div>
+                                <AiIcon />
+                              {:else}
+                                <AiIcon />            </div>
             <span class="role">{$_('home.ai')}</span>
           </div>
           <div class="content">
@@ -264,14 +225,9 @@
         />
         <button onclick={handleSubmit} disabled={isLoading} class="send-button">
           {#if isLoading}
-            <svg class="loading-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12a9 9 0 11-6.219-8.56"></path>
-            </svg>
+            <LoadingIcon />
           {:else}
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22,2 15,22 11,13 2,9"></polygon>
-            </svg>
+            <SendIcon />
           {/if}
         </button>
       </div>
