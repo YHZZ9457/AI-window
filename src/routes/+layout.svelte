@@ -10,7 +10,8 @@
   // Reactive statement to initialize chat when i18n is ready.
   // This is safe for both SSR and client-side.
   $: if (!$isLoading) {
-    chat.setInitial($_('home.initialMessage'));
+    // Use clearChat to ensure the translated message is always set after i18n loads.
+    chat.clearChat($_('home.initialMessage'));
   }
 
   onMount(() => {
