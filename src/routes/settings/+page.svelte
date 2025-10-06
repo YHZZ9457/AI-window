@@ -318,6 +318,15 @@
           {message}
         </div>
       {/if}
+
+      <div class="settings-section flat about-section">
+        <h3 class="static-header">{$_('settings.about.title')}</h3>
+        <div class="about-content">
+          <p><strong>{$_('settings.about.author')}:</strong> YHZZ9457</p>
+          <p><strong>{$_('settings.about.repository')}:</strong> <a href="https://github.com/YHZZ9457/AI-window" target="_blank">https://github.com/YHZZ9457/AI-window</a></p>
+          <p><strong>{$_('settings.about.contact')}:</strong> a15952149553@gmail.com / QQ: 2680159691</p>
+        </div>
+      </div>
     </div>
   </div>
 </main>
@@ -570,6 +579,32 @@
 
   .shortcut-recorder button {
       flex-shrink: 0;
+  }
+
+  .about-section {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-lg);
+  }
+
+  .about-content p {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin: 0 0 var(--spacing-sm) 0;
+    word-break: break-all;
+  }
+
+  .about-content p:last-child {
+    margin-bottom: 0;
+  }
+
+  .about-content a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: var(--transition-fast);
+  }
+
+  .about-content a:hover {
+    text-decoration: underline;
   }
 
   /* Responsive design */

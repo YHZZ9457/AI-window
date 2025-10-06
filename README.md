@@ -11,9 +11,10 @@ A modern, minimalist desktop AI assistant application built with SvelteKit and T
 - 💬 **AI Chat** - Interactive chat interface with OpenAI integration
 - ⚡ **Fast & Lightweight** - Built with SvelteKit for optimal performance
 - 🖥️ **Desktop App** - Native desktop experience with Tauri
-- ⚙️ **Customizable** - Configurable API settings and system prompts
-- 💾 **Export Chat** - Save conversations as JSON files
-- ⌨️ **Global Shortcut** - Quick access with customizable keyboard shortcuts
+  - ⚙️ **Customizable** - Configurable API settings and system prompts
+  - 💾 **Export Chat** - Save conversations as JSON files
+  - ⌨️ **Global Shortcut** - Quick access with customizable keyboard shortcuts
+  - 📎 **File Attachment** - Attach text files via button, paste, or drag-and-drop
 
 - 🚀 **现代化界面** - 简洁的黑白极简设计，支持夜间模式
 - 🌙 **夜间模式** - 无缝主题切换，支持系统偏好检测
@@ -23,7 +24,7 @@ A modern, minimalist desktop AI assistant application built with SvelteKit and T
 - ⚙️ **可定制** - 可配置的 API 设置和系统提示
 - 💾 **导出对话** - 将对话保存为 JSON 文件
 - ⌨️ **全局快捷键** - 可自定义的键盘快捷键快速访问
-
+- 📎 **文件附件** - 通过按钮、粘贴或拖拽上传文本文件
 ## Screenshots / 截图
 
 ### Main Chat Interface / 主聊天界面

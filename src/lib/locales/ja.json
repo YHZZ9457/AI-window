@@ -9,6 +9,7 @@
   "home": {
     "title": "AI コンパニオン",
     "placeholder": "何でも聞いてください...",
+    "placeholderFileAttached": "ファイルについて質問...",
     "initialMessage": "AIの応答はここに表示されます。",
     "you": "あなた",
     "ai": "AI",
@@ -18,7 +19,8 @@
       "export": "チャットをエクスポート",
       "theme": "テーマを切り替え",
       "settings": "設定",
-      "language": "言語を切り替える"
+      "language": "言語を切り替える",
+      "attach": "ファイルを添付"
     }
   },
   "settings": {
@@ -63,6 +65,12 @@
       "saveSuccess": "設定が正常に保存されました！",
       "saveError": "設定の保存中にエラーが発生しました: {error}",
       "loadError": "設定の取得中にエラーが発生しました: {error}"
+    },
+    "about": {
+      "title": "概要",
+      "author": "作成者",
+      "repository": "リポジトリ",
+      "contact": "連絡先"
     }
   }
 }

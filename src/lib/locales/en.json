@@ -9,6 +9,7 @@
   "home": {
     "title": "AI Companion",
     "placeholder": "Ask me anything...",
+    "placeholderFileAttached": "Ask about the file...",
     "initialMessage": "AI response will appear here.",
     "you": "You",
     "ai": "AI",
@@ -18,7 +19,8 @@
       "export": "Export Chat",
       "theme": "Toggle theme",
       "settings": "Settings",
-      "language": "Change language"
+      "language": "Change language",
+      "attach": "Attach File"
     }
   },
   "settings": {
@@ -63,6 +65,12 @@
       "saveSuccess": "Settings saved successfully!",
       "saveError": "Error saving settings: {error}",
       "loadError": "Error getting settings: {error}"
+    },
+    "about": {
+      "title": "About",
+      "author": "Author",
+      "repository": "Repository",
+      "contact": "Contact"
     }
   }
 }

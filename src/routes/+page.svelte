@@ -9,11 +9,13 @@
   import ExportIcon from '$lib/components/icons/ExportIcon.svelte';
   import ClearIcon from '$lib/components/icons/ClearIcon.svelte';
   import LogoIcon from '$lib/components/icons/LogoIcon.svelte';
+  import PlusIcon from '$lib/components/icons/PlusIcon.svelte';
+  import FileTextIcon from '$lib/components/icons/FileTextIcon.svelte';
   import { onMount, onDestroy } from 'svelte';
   import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   import { invoke } from '@tauri-apps/api/core';
-  import { save } from '@tauri-apps/plugin-dialog';
-  import { writeTextFile } from '@tauri-apps/plugin-fs';
+  import { save, open } from '@tauri-apps/plugin-dialog';
+  import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
   import { theme } from '$lib/stores/theme';
   import { _, locale } from 'svelte-i18n';
   import { chat } from '$lib/stores/chat.store';
@@ -31,6 +33,8 @@
   let outputAreaElement: HTMLElement;
   let showLanguageMenu = $state(false);
   let languageMenuElement: HTMLElement;
+  let attachedFileName = $state<string | null>(null);
+  let attachedFileContent = $state<string | null>(null);
 
   function scrollToBottom() {
     if (outputAreaElement) {
@@ -44,17 +48,67 @@
     }
   });
 
-  async function handleSubmit() {
-    if (!prompt || isLoading) return;
+  async function handleAttachment() {
+    if (isLoading) return;
+    try {
+      const selected = await open({
+        multiple: false,
+        filters: [
+          {
+            name: 'Text',
+            extensions: ['txt', 'md', 'json', 'csv', 'html', 'css', 'js', 'ts', 'py', 'rs']
+          }
+        ]
+      });
 
-    const userMessageContent = prompt;
+      if (typeof selected === 'string') {
+        const path = selected;
+        const content = await readTextFile(path);
+        const name = path.split(/[\\/]/).pop();
+
+        attachedFileName = name || path;
+        attachedFileContent = content;
+
+        const input = document.querySelector('.message-input') as HTMLInputElement;
+        if (input) {
+          input.focus();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to open or read file:', error);
+    }
+  }
+
+  function removeAttachment() {
+    attachedFileName = null;
+    attachedFileContent = null;
+  }
+
+  async function handleSubmit() {
+    if ((!prompt && !attachedFileContent) || isLoading) return;
+
+    // 1. Add the message to the Svelte store for UI display
+    chat.addUserMessage(prompt, attachedFileContent ? { name: attachedFileName!, content: attachedFileContent } : null);
+
+    // 2. Create a deep copy of messages for the backend to avoid mutating the UI state
+    const messagesForBackend = structuredClone($chat);
+    const lastMessage = messagesForBackend[messagesForBackend.length - 1];
+
+    // 3. In the copy, combine the text and file content for the AI
+    if (lastMessage && lastMessage.role === 'user' && lastMessage.attachment) {
+      const fileText = `--- Attached File: ${lastMessage.attachment.name} ---\n${lastMessage.attachment.content}`;
+      lastMessage.content = lastMessage.content ? `${lastMessage.content}\n\n${fileText}` : fileText;
+      delete lastMessage.attachment; // Clean up attachment from backend payload
+    }
+
     prompt = '';
-    chat.addUserMessage(userMessageContent);
+    removeAttachment();
 
     isLoading = true;
 
     try {
-      const result = await invoke('ask_ai', { messages: $chat });
+      // 4. Send the modified copy to the backend
+      const result = await invoke('ask_ai', { messages: messagesForBackend });
       chat.addAssistantMessage(result as string);
     } catch (error) {
       chat.addAssistantMessage(`Error: ${error}`);
@@ -140,13 +194,57 @@
         }
     };
 
+    const handleFile = (file: File) => {
+      if (!file.type.startsWith('text/') && !/\.json|\.md|\.csv|\.py|\.js|\.ts|\.html|\.css|\.rs|\.toml|\.yaml|\.yml$/.test(file.name)) {
+        // Basic filtering for text-like files, can be improved
+        console.warn('Unsupported file type:', file.type);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        attachedFileName = file.name;
+        attachedFileContent = content;
+      };
+      reader.onerror = () => {
+        console.error('Failed to read file');
+      };
+      reader.readAsText(file);
+    };
+
+    const handlePaste = (event: ClipboardEvent) => {
+      const file = event.clipboardData?.files[0];
+      if (file) {
+        event.preventDefault();
+        handleFile(file);
+      }
+    };
+
+    const handleDragOver = (event: DragEvent) => {
+      event.preventDefault(); // Necessary to allow drop
+    };
+
+    const handleDrop = (event: DragEvent) => {
+      event.preventDefault();
+      const file = event.dataTransfer?.files[0];
+      if (file) {
+        handleFile(file);
+      }
+    };
+
     document.addEventListener('keydown', handleKey);
     document.addEventListener('click', handleClickOutside, true);
+    document.addEventListener('paste', handlePaste);
+    document.addEventListener('dragover', handleDragOver);
+    document.addEventListener('drop', handleDrop);
     scrollToBottom();
 
     return () => {
       document.removeEventListener('keydown', handleKey);
       document.removeEventListener('click', handleClickOutside, true);
+      document.removeEventListener('paste', handlePaste);
+      document.removeEventListener('dragover', handleDragOver);
+      document.removeEventListener('drop', handleDrop);
     };
   });
 </script>
@@ -203,7 +301,17 @@
             <span class="role">{message.role === 'user' ? $_('home.you') : $_('home.ai')}</span>
             <span class="timestamp">{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
           </div>
-          <div class="content">{message.content}</div>
+          <div class="content">
+            {#if message.content}
+              <div class="message-text">{message.content}</div>
+            {/if}
+            {#if message.attachment}
+              <div class="attachment-block">
+                <div class="attachment-icon"><FileTextIcon /></div>
+                <span class="attachment-name">{message.attachment.name}</span>
+              </div>
+            {/if}
+          </div>
         </div>
       {/each}
       {#if isLoading}
@@ -227,10 +335,21 @@
     
     <div class="input-container">
       <div class="input-wrapper">
+        <button onclick={handleAttachment} class="attachment-button" aria-label={$_('home.buttons.attach')} title={$_('home.buttons.attach')}>
+          <PlusIcon />
+        </button>
+        {#if attachedFileName}
+          <div class="filename-pill">
+            <span class="pill-text" title={attachedFileName}>{attachedFileName}</span>
+            <button onclick={removeAttachment} class="remove-pill-button" title="Remove file">
+              <ClearIcon />
+            </button>
+          </div>
+        {/if}
         <input 
           type="text" 
           class="message-input"
-          placeholder={`${$_('home.placeholder')} (Ctrl+/ to focus)`} 
+          placeholder={attachedFileName ? $_('home.placeholderFileAttached') : `${$_('home.placeholder')} (Ctrl+/ to focus)`} 
           bind:value={prompt}
           onkeydown={(e) => e.key === 'Enter' && handleSubmit()}
           disabled={isLoading}
@@ -472,6 +591,38 @@
     white-space: pre-wrap;
     line-height: 1.5;
     font-size: var(--font-size-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .attachment-block {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    background: var(--bg-tertiary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-primary);
+  }
+
+  .message.user .attachment-block {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .attachment-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+  }
+
+  .attachment-name {
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .loading-message {
@@ -509,6 +660,53 @@
     }
   }
 
+  .filename-pill {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-full);
+    padding: 4px var(--spacing-sm);
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    flex-shrink: 1;
+  }
+
+  .pill-text {
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+  }
+
+  .remove-pill-button {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
+  }
+
+  .remove-pill-button:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  .remove-pill-button > :global(svg) {
+    width: 12px;
+    height: 12px;
+  }
+
   .input-container {
     flex-shrink: 0;
   }
@@ -522,6 +720,26 @@
     border-radius: var(--radius-full);
     padding: var(--spacing-xs) var(--spacing-sm);
     box-shadow: 0 1px 4px var(--shadow-soft);
+  }
+
+  .attachment-button {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full);
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition-normal);
+    flex-shrink: 0;
+  }
+
+  .attachment-button:hover {
+    background: var(--bg-secondary);
+    transform: scale(1.05);
   }
 
   .message-input {

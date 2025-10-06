@@ -9,6 +9,7 @@
   "home": {
     "title": "AI 助手",
     "placeholder": "随便问点什么...",
+    "placeholderFileAttached": "可以就文件内容提问...",
     "initialMessage": "AI 的回复会出现在这里。",
     "you": "你",
     "ai": "AI",
@@ -18,7 +19,8 @@
       "export": "导出对话",
       "theme": "切换主题",
       "settings": "设置",
-      "language": "切换语言"
+      "language": "切换语言",
+      "attach": "添加附件"
     }
   },
   "settings": {
@@ -63,6 +65,12 @@
       "saveSuccess": "设置已成功保存！",
       "saveError": "保存设置时出错: {error}",
       "loadError": "获取设置时出错: {error}"
+    },
+    "about": {
+      "title": "关于",
+      "author": "作者",
+      "repository": "仓库地址",
+      "contact": "联系方式"
     }
   }
 }

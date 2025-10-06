@@ -1,8 +1,14 @@
 import { writable } from 'svelte/store';
 
-type Message = {
+export type Attachment = {
+  name: string;
+  content: string;
+};
+
+export type Message = {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  attachment?: Attachment | null;
 };
 
 function createChatStore() {
@@ -23,13 +29,14 @@ function createChatStore() {
             return messages;
         });
     },
-    addUserMessage: (content: string) => {
+    addUserMessage: (content: string, attachment: Attachment | null = null) => {
+      const newMessage: Message = { role: 'user', content, attachment };
       update(messages => {
         const currentMessages = messages;
         if (currentMessages.length === 1 && currentMessages[0].role === 'assistant') {
-            return [{ role: 'user', content }];
+            return [newMessage];
         }
-        return [...currentMessages, { role: 'user', content }];
+        return [...currentMessages, newMessage];
       });
     },
     addAssistantMessage: (content: string) => {
