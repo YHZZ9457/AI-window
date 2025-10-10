@@ -95,6 +95,54 @@ fn open_config_directory(app: AppHandle) -> Result<(), String> {
     app.opener().open_url(path.to_string_lossy(), None::<String>).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn extract_text(bytes: Vec<u8>, file_name: String) -> Result<String, String> {
+    let extension = std::path::Path::new(&file_name)
+        .extension()
+        .and_then(std::ffi::OsStr::to_str)
+        .unwrap_or("");
+
+    match extension.to_lowercase().as_str() {
+        "pdf" => {
+            pdf_extract::extract_text_from_mem(&bytes)
+                .map_err(|e| e.to_string())
+        },
+        "docx" => {
+            use docx_rs::{read_docx, DocumentChild, ParagraphChild, RunChild};
+
+            match read_docx(&bytes) {
+                Ok(docx) => {
+                    let mut text = String::new();
+                    for child in &docx.document.children {
+                        if let DocumentChild::Paragraph(p) = child {
+                            for p_child in &p.children {
+                                if let ParagraphChild::Run(run) = p_child {
+                                    for r_child in &run.children {
+                                        if let RunChild::Text(t) = r_child {
+                                            text.push_str(&t.text);
+                                        }
+                                    }
+                                }
+                            }
+                            text.push('\n');
+                        }
+                    }
+                    Ok(text)
+                },
+                Err(e) => Err(e.to_string()),
+            }
+        },
+        // Plain text extensions
+        "txt" | "md" | "json" | "csv" | "html" | "css" | "js" | "ts" | "py" | "rs" | "toml" | "yaml" | "yml" => {
+            String::from_utf8(bytes).map_err(|e| e.to_string())
+        },
+        _ => {
+            // Attempt to read as text for any other file type, might not be accurate.
+            Ok(String::from_utf8_lossy(&bytes).to_string())
+        }
+    }
+}
+
 // --- AI API Logic ---
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -310,7 +358,8 @@ pub fn run() {
             ask_ai,
             get_settings,
             set_settings,
-            open_config_directory
+            open_config_directory,
+            extract_text
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

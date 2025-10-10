@@ -8,23 +8,23 @@ A modern, minimalist desktop AI assistant application built with SvelteKit and T
 
 - 🚀 **Modern UI** - Clean, minimalist black and white design with dark mode support
 - 🌙 **Dark Mode** - Seamless theme switching with system preference detection
-- 💬 **AI Chat** - Interactive chat interface with OpenAI integration
+- 💬 **AI Chat** - Interactive chat with OpenAI and compatible APIs (e.g., DeepSeek)
 - ⚡ **Fast & Lightweight** - Built with SvelteKit for optimal performance
 - 🖥️ **Desktop App** - Native desktop experience with Tauri
   - ⚙️ **Customizable** - Configurable API settings and system prompts
   - 💾 **Export Chat** - Save conversations as JSON files
   - ⌨️ **Global Shortcut** - Quick access with customizable keyboard shortcuts
-  - 📎 **File Attachment** - Attach text files via button, paste, or drag-and-drop
+  - 📎 **File Attachment** - Attach text, PDF, and Word files via button, paste, or drag-and-drop
 
 - 🚀 **现代化界面** - 简洁的黑白极简设计，支持夜间模式
 - 🌙 **夜间模式** - 无缝主题切换，支持系统偏好检测
-- 💬 **AI 对话** - 集成 OpenAI 的交互式聊天界面
+- 💬 **AI 对话** - 与 OpenAI 及兼容 API（如 DeepSeek）进行交互式聊天
 - ⚡ **快速轻量** - 使用 SvelteKit 构建，性能优异
 - 🖥️ **桌面应用** - 通过 Tauri 提供原生桌面体验
 - ⚙️ **可定制** - 可配置的 API 设置和系统提示
 - 💾 **导出对话** - 将对话保存为 JSON 文件
 - ⌨️ **全局快捷键** - 可自定义的键盘快捷键快速访问
-- 📎 **文件附件** - 通过按钮、粘贴或拖拽上传文本文件
+- 📎 **文件附件** - 通过按钮、粘贴或拖拽上传文本、PDF 和 Word 文件
 ## Screenshots / 截图
 
 ### Main Chat Interface / 主聊天界面
@@ -148,15 +148,14 @@ SYSTEM_PROMPT=You are a helpful AI assistant.
 ### Settings Page Options / 设置页面选项
 
 - **System Prompt** - Define AI behavior and personality
-- **API Key** - Your OpenAI API key (stored locally)
-- **API URL** - OpenAI API endpoint
-- **Model Name** - Preferred AI model (e.g., gpt-4o-mini)
-- **Global Shortcut** - Keyboard shortcut to show/hide the app
-- **Theme** - Choose between Light, Dark, or Auto (follow system)
+  - **API Key** - Your API key from OpenAI or a compatible service (e.g., DeepSeek)
+  - **API URL** - OpenAI API endpoint
+  - **Model Name** - Preferred AI model (e.g., gpt-4o-mini)
+  - **Global Shortcut** - Keyboard shortcut to show/hide the app
+  - **Theme** - Choose between Light, Dark, or Auto (follow system)
 
 - **系统提示** - 定义 AI 的行为和个性
-- **API 密钥** - 你的 OpenAI API 密钥（本地存储）
-- **API 地址** - OpenAI API 端点
+- **API 密钥** - 你的 OpenAI 或兼容服务（如 DeepSeek）的 API 密钥- **API 地址** - OpenAI API 端点
 - **模型名称** - 首选的 AI 模型（例如 gpt-4o-mini）
 - **全局快捷键** - 显示/隐藏应用的键盘快捷键
 - **主题** - 在亮色、暗色或自动（跟随系统）之间选择

@@ -1,0 +1,29 @@
+diff --git a/node_modules/underscore/underscore-esm.js b/node_modules/underscore/underscore-esm.js
+index a852bb0..6a57af8 100644
+--- a/node_modules/underscore/underscore-esm.js
++++ b/node_modules/underscore/underscore-esm.js
+@@ -329,8 +329,8 @@ _$1.prototype.value = function() {
+ 
+ // Provide unwrapping proxies for some methods used in engine operations
+ // such as arithmetic and JSON stringification.
+-_$1.prototype.valueOf = _$1.prototype.toJSON = _$1.prototype.value;
+-
++  Object.defineProperty(_$1.prototype, 'valueOf', { value: _$1.prototype.value, writable: true, configurable: true });
++  _$1.prototype.toJSON = _$1.prototype.value;
+ _$1.prototype.toString = function() {
+   return String(this._wrapped);
+ };
+diff --git a/node_modules/underscore/underscore-umd.js b/node_modules/underscore/underscore-umd.js
+index c714991..a1afa86 100644
+--- a/node_modules/underscore/underscore-umd.js
++++ b/node_modules/underscore/underscore-umd.js
+@@ -338,7 +338,8 @@
+ 
+   // Provide unwrapping proxies for some methods used in engine operations
+   // such as arithmetic and JSON stringification.
+-  _$1.prototype.valueOf = _$1.prototype.toJSON = _$1.prototype.value;
++  Object.defineProperty(_$1.prototype, 'valueOf', { value: _$1.prototype.value, writable: true, configurable: true });
++  _$1.prototype.toJSON = _$1.prototype.value;
+ 
+   _$1.prototype.toString = function() {
+     return String(this._wrapped);

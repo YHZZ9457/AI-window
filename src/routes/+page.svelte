@@ -15,7 +15,7 @@
   import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   import { invoke } from '@tauri-apps/api/core';
   import { save, open } from '@tauri-apps/plugin-dialog';
-  import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
+  import { writeTextFile, readTextFile, readFile } from '@tauri-apps/plugin-fs';
   import { theme } from '$lib/stores/theme';
   import { _, locale } from 'svelte-i18n';
   import { chat } from '$lib/stores/chat.store';
@@ -48,6 +48,42 @@
     }
   });
 
+  async function processFile(file: { path?: string; file?: File }) {
+    if (isLoading) return;
+
+    let fileName: string;
+    let fileData: Uint8Array;
+
+    try {
+      if (file.path) {
+        fileName = file.path.split(/[\\/]/).pop() || file.path;
+        fileData = await readFile(file.path);
+      } else if (file.file) {
+        fileName = file.file.name;
+        const arrayBuffer = await file.file.arrayBuffer();
+        fileData = new Uint8Array(arrayBuffer);
+      } else {
+        return;
+      }
+
+      const content = await invoke('extract_text', {
+        bytes: Array.from(fileData),
+        fileName
+      });
+
+      attachedFileName = fileName;
+      attachedFileContent = content as string;
+
+      const input = document.querySelector('.message-input') as HTMLInputElement;
+      if (input) {
+        input.focus();
+      }
+    } catch (error) {
+      console.error('Failed to process file:', error);
+      // Optionally, display an error message to the user
+    }
+  }
+
   async function handleAttachment() {
     if (isLoading) return;
     try {
@@ -55,27 +91,30 @@
         multiple: false,
         filters: [
           {
-            name: 'Text',
-            extensions: ['txt', 'md', 'json', 'csv', 'html', 'css', 'js', 'ts', 'py', 'rs']
+            name: 'Supported Files',
+            extensions: [
+              'txt',
+              'md',
+              'json',
+              'csv',
+              'html',
+              'css',
+              'js',
+              'ts',
+              'py',
+              'rs',
+              'pdf',
+              'docx'
+            ]
           }
         ]
       });
 
       if (typeof selected === 'string') {
-        const path = selected;
-        const content = await readTextFile(path);
-        const name = path.split(/[\\/]/).pop();
-
-        attachedFileName = name || path;
-        attachedFileContent = content;
-
-        const input = document.querySelector('.message-input') as HTMLInputElement;
-        if (input) {
-          input.focus();
-        }
+        await processFile({ path: selected });
       }
     } catch (error) {
-      console.error('Failed to open or read file:', error);
+      console.error('Failed to open file:', error);
     }
   }
 
@@ -195,21 +234,29 @@
     };
 
     const handleFile = (file: File) => {
-      if (!file.type.startsWith('text/') && !/\.json|\.md|\.csv|\.py|\.js|\.ts|\.html|\.css|\.rs|\.toml|\.yaml|\.yml$/.test(file.name)) {
-        // Basic filtering for text-like files, can be improved
+      const allowedExtensions = [
+        '.txt',
+        '.md',
+        '.json',
+        '.csv',
+        '.html',
+        '.css',
+        '.js',
+        '.ts',
+        '.py',
+        '.rs',
+        '.pdf',
+        '.docx'
+      ];
+      const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`;
+
+      if (!allowedExtensions.includes(fileExtension)) {
         console.warn('Unsupported file type:', file.type);
+        // Optionally, show a user-facing error message here.
         return;
       }
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target?.result as string;
-        attachedFileName = file.name;
-        attachedFileContent = content;
-      };
-      reader.onerror = () => {
-        console.error('Failed to read file');
-      };
-      reader.readAsText(file);
+
+      processFile({ file });
     };
 
     const handlePaste = (event: ClipboardEvent) => {
