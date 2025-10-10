@@ -60,12 +60,12 @@ Configure API keys, model settings, and shortcuts
    npm install
    ```
 
-3. **Configure environment** / **配置环境**
-   - Copy `.env.example` to `.env`
-   - Add your OpenAI API key
+3. **Configure settings** / **配置设置**
+   - Launch the application and go to Settings
+   - Enter your API key and other settings in the UI
    
-   - 复制 `.env.example` 为 `.env`
-   - 添加你的 OpenAI API 密钥
+   - 启动应用并进入设置页面
+   - 在界面中输入你的 API 密钥和其他设置
 
 4. **Development mode** / **开发模式**
    ```bash
@@ -128,36 +128,46 @@ Configure API keys, model settings, and shortcuts
 
 ## Configuration / 配置
 
-### Environment Variables / 环境变量
+### Settings Configuration / 设置配置
 
-Create a `.env` file in the root directory:
+Configure your settings through the application's Settings page:
 
-在根目录创建 `.env` 文件：
+通过应用的设置页面配置你的设置：
 
-```env
-# OpenAI API Configuration / OpenAI API 配置
-OPENAI_API_KEY=your_api_key_here
-OPENAI_API_URL=https://api.openai.com/v1/chat/completions
-OPENAI_MODEL=gpt-4o-mini
+- **System Prompt** - Define AI behavior and personality
+- **API Key** - Your API key from OpenAI or a compatible service (e.g., DeepSeek)
+- **API URL** - OpenAI API endpoint or compatible service URL
+- **Model Name** - Preferred AI model (e.g., gpt-4o-mini)
+- **Global Shortcut** - Keyboard shortcut to show/hide the app
+- **Clear Chat Shortcut** - Keyboard shortcut to clear chat history
+- **Theme** - Choose between Light, Dark, or Auto (follow system)
 
-# Application Settings / 应用设置
-GLOBAL_SHORTCUT=Alt+Space
-SYSTEM_PROMPT=You are a helpful AI assistant.
-```
+- **系统提示** - 定义 AI 的行为和个性
+- **API 密钥** - 你的 OpenAI 或兼容服务（如 DeepSeek）的 API 密钥
+- **API 地址** - OpenAI API 端点或兼容服务地址
+- **模型名称** - 首选的 AI 模型（例如 gpt-4o-mini）
+- **全局快捷键** - 显示/隐藏应用的键盘快捷键
+- **清空对话快捷键** - 清空对话历史的键盘快捷键
+- **主题** - 在亮色、暗色或自动（跟随系统）之间选择
 
 ### Settings Page Options / 设置页面选项
 
 - **System Prompt** - Define AI behavior and personality
-  - **API Key** - Your API key from OpenAI or a compatible service (e.g., DeepSeek)
-  - **API URL** - OpenAI API endpoint
-  - **Model Name** - Preferred AI model (e.g., gpt-4o-mini)
-  - **Global Shortcut** - Keyboard shortcut to show/hide the app
-  - **Theme** - Choose between Light, Dark, or Auto (follow system)
+- **API Type** - Choose between OpenAI or OpenAI-compatible services
+- **API Key** - Your API key from OpenAI or a compatible service (e.g., DeepSeek)
+- **API URL** - OpenAI API endpoint or compatible service URL
+- **Model Name** - Preferred AI model (e.g., gpt-4o-mini)
+- **Global Shortcut** - Keyboard shortcut to show/hide the app
+- **Clear Chat Shortcut** - Keyboard shortcut to clear chat history
+- **Theme** - Choose between Light, Dark, or Auto (follow system)
 
 - **系统提示** - 定义 AI 的行为和个性
-- **API 密钥** - 你的 OpenAI 或兼容服务（如 DeepSeek）的 API 密钥- **API 地址** - OpenAI API 端点
+- **API 类型** - 选择 OpenAI 或 OpenAI 兼容服务
+- **API 密钥** - 你的 OpenAI 或兼容服务（如 DeepSeek）的 API 密钥
+- **API 地址** - OpenAI API 端点或兼容服务地址
 - **模型名称** - 首选的 AI 模型（例如 gpt-4o-mini）
 - **全局快捷键** - 显示/隐藏应用的键盘快捷键
+- **清空对话快捷键** - 清空对话历史的键盘快捷键
 - **主题** - 在亮色、暗色或自动（跟随系统）之间选择
 
 ## Development / 开发
