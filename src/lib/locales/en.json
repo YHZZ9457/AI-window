@@ -28,6 +28,13 @@
     "back": "Back",
     "aiConfig": {
       "title": "AI Configuration",
+      "systemPromptPreset": "System Prompt Preset",
+      "systemPromptPresetDefault": "Default",
+      "systemPromptPresetDefaultDesc": "Standard helpful assistant",
+      "systemPromptPresetMinimal": "Minimal",
+      "systemPromptPresetMinimalDesc": "Concise, signal-focused responses",
+      "systemPromptPresetCustom": "Custom",
+      "systemPromptPresetCustomDesc": "Define your own system prompt",
       "systemPrompt": "System Prompt",
       "systemPromptPlaceholder": "Define the AI's behavior and personality...",
       "apiType": "API Type",

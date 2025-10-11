@@ -28,6 +28,13 @@
     "back": "戻る",
     "aiConfig": {
       "title": "AI 設定",
+      "systemPromptPreset": "システムプロンプトプリセット",
+      "systemPromptPresetDefault": "デフォルト",
+      "systemPromptPresetDefaultDesc": "標準的な役立つアシスタント",
+      "systemPromptPresetMinimal": "ミニマル",
+      "systemPromptPresetMinimalDesc": "簡潔で信号重視の応答",
+      "systemPromptPresetCustom": "カスタム",
+      "systemPromptPresetCustomDesc": "独自のシステムプロンプトを定義",
       "systemPrompt": "システムプロンプト",
       "systemPromptPlaceholder": "AIの動作と個性を定義します...",
       "apiType": "APIタイプ",

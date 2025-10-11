@@ -165,7 +165,13 @@ body {
 /* Selection styles */
 ::selection {
   background-color: var(--primary);
-  color: white;
+  color: var(--bg-primary);
+}
+
+/* Dark theme selection override - white highlight with dark text */
+[data-theme="dark"] ::selection {
+  background-color: #ffffff;
+  color: #000000;
 }
 
 /* Animations */

@@ -10,7 +10,8 @@
     model_name: '',
     shortcut: '',
     system_prompt: '',
-    api_type: 'openai'
+    api_type: 'openai',
+    system_prompt_preset: 'default'
   });
   let message = $state('');
   let openSection = $state('aiConfig'); // aiConfig, appSettings
@@ -129,6 +130,24 @@
     invoke('get_settings').then((loadedSettings: any) => {
       const { clear_chat_shortcut, ...rest } = loadedSettings;
       settings = { ...settings, ...rest };
+      
+      // Set system_prompt_preset based on current system_prompt
+      if (settings.system_prompt === "You are a helpful assistant.") {
+        settings.system_prompt_preset = 'default';
+      } else if (settings.system_prompt === "Your function is to distill every query to its absolute essence. Provide the single most critical piece of information as a declarative statement. Maximum signal, zero noise. Your response should rarely exceed one sentence.") {
+        settings.system_prompt_preset = 'minimal';
+      } else {
+        settings.system_prompt_preset = 'custom';
+      }
+      
+      // 处理API密钥显示：如果已配置且不是默认值，显示占位符点
+      if (settings.api_key && settings.api_key !== 'your_api_key_here') {
+        actualApiKey = settings.api_key;
+        settings.api_key = '••••••••••••••••••••';
+      } else {
+        actualApiKey = settings.api_key;
+      }
+      
       if (clear_chat_shortcut != null) {
         clearChatShortcut.set(clear_chat_shortcut);
       }
@@ -150,8 +169,26 @@
       const processedSettings = { ...settings, clear_chat_shortcut: $clearChatShortcut };
       processedSettings.api_url = normalizeApiUrl(processedSettings.api_url);
       
+      // 处理API密钥：如果显示的是占位符点，使用实际值；如果用户清空了，则清空
+      if (processedSettings.api_key === '••••••••••••••••••••') {
+        // 用户没有修改API密钥，保持原来的值
+        processedSettings.api_key = actualApiKey;
+      } else if (processedSettings.api_key === '') {
+        // 用户清空了API密钥，设置为空
+        actualApiKey = '';
+      } else {
+        // 用户输入了新值，更新实际值
+        actualApiKey = processedSettings.api_key;
+      }
+      
       await invoke('set_settings', { settings: processedSettings });
       settings.api_url = processedSettings.api_url;
+      
+      // 保存后显示占位符点（如果API密钥存在且不是默认值）
+      if (actualApiKey && actualApiKey !== 'your_api_key_here') {
+        settings.api_key = '••••••••••••••••••••';
+      }
+      
       message = $_('settings.messages.saveSuccess');
       setTimeout(() => { message = '' }, 3000);
     } catch (e) {
@@ -183,6 +220,35 @@
           openSection = section;
       }
   }
+
+  function handlePresetChange() {
+    const preset = settings.system_prompt_preset;
+    if (preset === 'default') {
+      settings.system_prompt = "You are a helpful assistant.";
+    } else if (preset === 'minimal') {
+      settings.system_prompt = "Your function is to distill every query to its absolute essence. Provide the single most critical piece of information as a declarative statement. Maximum signal, zero noise. Your response should rarely exceed one sentence.";
+    }
+    // For 'custom', don't change the system_prompt value
+  }
+
+  let apiKeyDisplayValue = $state('');
+  let actualApiKey = $state('');
+
+  function handleApiKeyFocus() {
+    // 当获得焦点时，显示实际值
+    settings.api_key = actualApiKey;
+  }
+
+  function handleApiKeyBlur() {
+    // 当失去焦点时，如果API密钥已配置且不是默认值，显示占位符点
+    if (settings.api_key && settings.api_key !== 'your_api_key_here') {
+      actualApiKey = settings.api_key;
+      settings.api_key = '••••••••••••••••••••';
+    } else if (settings.api_key === '') {
+      // 用户清空了输入框，更新实际值
+      actualApiKey = '';
+    }
+  }
 </script>
 
 <main class="glass">
@@ -207,6 +273,15 @@
         {#if openSection === 'aiConfig'}
         <div class="accordion-content">
             <div class="form-group">
+              <label for="system-prompt-preset">{$_('settings.aiConfig.systemPromptPreset')}</label>
+              <select id="system-prompt-preset" bind:value={settings.system_prompt_preset} onchange={handlePresetChange}>
+                <option value="default">{$_('settings.aiConfig.systemPromptPresetDefault')} - {$_('settings.aiConfig.systemPromptPresetDefaultDesc')}</option>
+                <option value="minimal">{$_('settings.aiConfig.systemPromptPresetMinimal')} - {$_('settings.aiConfig.systemPromptPresetMinimalDesc')}</option>
+                <option value="custom">{$_('settings.aiConfig.systemPromptPresetCustom')} - {$_('settings.aiConfig.systemPromptPresetCustomDesc')}</option>
+              </select>
+            </div>
+
+            <div class="form-group">
               <label for="system-prompt">{$_('settings.aiConfig.systemPrompt')}</label>
               <textarea id="system-prompt" bind:value={settings.system_prompt} rows="3" placeholder={$_('settings.aiConfig.systemPromptPlaceholder')}></textarea>
             </div>
@@ -221,7 +296,14 @@
 
             <div class="form-group">
               <label for="api-key">{$_('settings.aiConfig.apiKey')}</label>
-              <input id="api-key" type="password" bind:value={settings.api_key} placeholder={$_('settings.aiConfig.apiKeyPlaceholder')} />
+              <input 
+                id="api-key" 
+                type="password" 
+                bind:value={settings.api_key} 
+                placeholder={$_('settings.aiConfig.apiKeyPlaceholder')}
+                onfocus={handleApiKeyFocus}
+                onblur={handleApiKeyBlur}
+              />
             </div>
 
             <div class="form-group">

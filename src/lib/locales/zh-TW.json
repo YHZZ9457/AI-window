@@ -28,6 +28,13 @@
     "back": "返回",
     "aiConfig": {
       "title": "AI 設定",
+      "systemPromptPreset": "系統提示預設",
+      "systemPromptPresetDefault": "預設",
+      "systemPromptPresetDefaultDesc": "標準的有用助手",
+      "systemPromptPresetMinimal": "極簡",
+      "systemPromptPresetMinimalDesc": "簡潔、信號導向的回覆",
+      "systemPromptPresetCustom": "自訂",
+      "systemPromptPresetCustomDesc": "定義您自己的系統提示",
       "systemPrompt": "系統提示",
       "systemPromptPlaceholder": "定義 AI 的行為和個性...",
       "apiType": "API 類型",
