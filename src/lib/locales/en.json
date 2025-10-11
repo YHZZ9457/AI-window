@@ -47,7 +47,9 @@
       "apiEndpointHint": "We'll automatically append /chat/completions if needed",
       "apiEndpointHintSave": "Will be saved as: {url}",
       "modelName": "Model Name",
-      "modelNamePlaceholder": "e.g., gpt-4o-mini or deepseek-chat"
+      "modelNamePlaceholder": "e.g., gpt-4o-mini or deepseek-chat",
+      "streamOutput": "Stream Output",
+      "streamOutputHint": "Enable to get responses streamed word by word."
     },
     "appSettings": {
       "title": "Application Settings",

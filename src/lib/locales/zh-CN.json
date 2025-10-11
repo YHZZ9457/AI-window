@@ -47,7 +47,9 @@
       "apiEndpointHint": "如果需要，我们将自动补全 /chat/completions",
       "apiEndpointHintSave": "将保存为: {url}",
       "modelName": "模型名称",
-      "modelNamePlaceholder": "例如 gpt-4o-mini 或 deepseek-chat"
+      "modelNamePlaceholder": "例如 gpt-4o-mini 或 deepseek-chat",
+      "streamOutput": "流式输出",
+      "streamOutputHint": "启用后，响应将逐字流式传输。"
     },
     "appSettings": {
       "title": "应用设置",

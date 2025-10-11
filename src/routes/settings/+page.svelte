@@ -204,12 +204,37 @@
 
   function normalizeApiUrl(url: string): string {
     if (!url) return url;
-    if (url.includes('/chat/completions')) return url;
-    let normalizedUrl = url.replace(/\/+$/, '');
-    if (normalizedUrl.endsWith('/v1')) return normalizedUrl + '/chat/completions';
-    if (normalizedUrl.endsWith('/api')) return normalizedUrl + '/v1/chat/completions';
-    if (normalizedUrl.endsWith('/chat')) return normalizedUrl + '/completions';
-    if (normalizedUrl.includes('api.deepseek.com')) return normalizedUrl + '/v1/chat/completions';
+    
+    // 移除可能的引号和多余空格
+    let normalizedUrl = url.trim().replace(/^"|"$/g, '');
+    
+    // 如果已经包含完整的路径，直接返回
+    if (normalizedUrl.includes('/chat/completions')) {
+      return normalizedUrl;
+    }
+    
+    // 移除末尾的斜杠
+    normalizedUrl = normalizedUrl.replace(/\/+$/, '');
+    
+    // 根据不同的端点格式添加适当的路径
+    if (normalizedUrl.endsWith('/v1')) {
+      return normalizedUrl + '/chat/completions';
+    }
+    if (normalizedUrl.endsWith('/api')) {
+      return normalizedUrl + '/v1/chat/completions';
+    }
+    if (normalizedUrl.endsWith('/chat')) {
+      return normalizedUrl + '/completions';
+    }
+    
+    // 对于常见的 API 提供商，添加标准路径
+    if (normalizedUrl.includes('api.deepseek.com') || 
+        normalizedUrl.includes('api.openai.com') ||
+        normalizedUrl.includes('api.anthropic.com')) {
+      return normalizedUrl + '/v1/chat/completions';
+    }
+    
+    // 对于其他自定义端点，假设它们需要完整的路径
     return normalizedUrl + '/v1/chat/completions';
   }
 
@@ -270,10 +295,11 @@
           {$_('settings.aiConfig.title')}
           <span class="chevron {openSection === 'aiConfig' ? 'open' : ''}"></span>
         </h3>
-        {#if openSection === 'aiConfig'}
-        <div class="accordion-content">
+        <div class="accordion-content form-grid">
             <div class="form-group">
-              <label for="system-prompt-preset">{$_('settings.aiConfig.systemPromptPreset')}</label>
+              <div class="form-group-header">
+                <label for="system-prompt-preset">{$_('settings.aiConfig.systemPromptPreset')}</label>
+              </div>
               <select id="system-prompt-preset" bind:value={settings.system_prompt_preset} onchange={handlePresetChange}>
                 <option value="default">{$_('settings.aiConfig.systemPromptPresetDefault')} - {$_('settings.aiConfig.systemPromptPresetDefaultDesc')}</option>
                 <option value="minimal">{$_('settings.aiConfig.systemPromptPresetMinimal')} - {$_('settings.aiConfig.systemPromptPresetMinimalDesc')}</option>
@@ -281,13 +307,17 @@
               </select>
             </div>
 
-            <div class="form-group">
-              <label for="system-prompt">{$_('settings.aiConfig.systemPrompt')}</label>
+            <div class="form-group span-2">
+              <div class="form-group-header">
+                <label for="system-prompt">{$_('settings.aiConfig.systemPrompt')}</label>
+              </div>
               <textarea id="system-prompt" bind:value={settings.system_prompt} rows="3" placeholder={$_('settings.aiConfig.systemPromptPlaceholder')}></textarea>
             </div>
 
             <div class="form-group">
-              <label for="api-type">{$_('settings.aiConfig.apiType')}</label>
+              <div class="form-group-header">
+                <label for="api-type">{$_('settings.aiConfig.apiType')}</label>
+              </div>
               <select id="api-type" bind:value={settings.api_type}>
                 <option value="openai">{$_('settings.aiConfig.openai')}</option>
                 <option value="openai-compatible">{$_('settings.aiConfig.openaiCompatible')}</option>
@@ -295,7 +325,9 @@
             </div>
 
             <div class="form-group">
-              <label for="api-key">{$_('settings.aiConfig.apiKey')}</label>
+              <div class="form-group-header">
+                <label for="api-key">{$_('settings.aiConfig.apiKey')}</label>
+              </div>
               <input 
                 id="api-key" 
                 type="password" 
@@ -306,8 +338,10 @@
               />
             </div>
 
-            <div class="form-group">
-              <label for="api-url">{$_('settings.aiConfig.apiEndpoint')}</label>
+            <div class="form-group span-2">
+              <div class="form-group-header">
+                <label for="api-url">{$_('settings.aiConfig.apiEndpoint')}</label>
+              </div>
               <input 
                 id="api-url" 
                 type="text" 
@@ -325,11 +359,14 @@
             </div>
 
             <div class="form-group">
-              <label for="model-name">{$_('settings.aiConfig.modelName')}</label>
+              <div class="form-group-header">
+                <label for="model-name">{$_('settings.aiConfig.modelName')}</label>
+              </div>
               <input id="model-name" type="text" bind:value={settings.model_name} placeholder={$_('settings.aiConfig.modelNamePlaceholder')} />
             </div>
+
+
         </div>
-        {/if}
       </div>
 
       <div class="settings-section">
@@ -532,10 +569,31 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
-    margin-bottom: var(--spacing-md);
   }
-  .form-group:last-child {
-      margin-bottom: 0;
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-lg);
+  }
+
+  .form-group.span-2 {
+    grid-column: span 2;
+  }
+
+  .form-group-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  @media (max-width: 640px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+    .form-group.span-2 {
+      grid-column: span 1;
+    }
   }
 
   label {
@@ -687,6 +745,53 @@
 
   .about-content a:hover {
     text-decoration: underline;
+  }
+
+  input[type="checkbox"][role="switch"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+    background-color: var(--bg-tertiary);
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+    border: 1px solid var(--border-primary);
+  }
+
+  input[type="checkbox"][role="switch"]::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.2s ease-in-out;
+  }
+
+  input[type="checkbox"][role="switch"]:checked {
+    background-color: var(--primary);
+  }
+
+  input[type="checkbox"][role="switch"]:checked::before {
+    transform: translateX(16px);
+  }
+
+  .flex {
+    display: flex;
+  }
+
+  .items-center {
+    align-items: center;
+  }
+
+  .justify-between {
+    justify-content: space-between;
   }
 
   /* Responsive design */

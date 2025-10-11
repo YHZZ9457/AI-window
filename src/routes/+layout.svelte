@@ -44,6 +44,9 @@
     if (e.shiftKey) parts.push('Shift');
     if (e.metaKey && !e.ctrlKey) parts.push('Super');
 
+    // 安全地处理 key 属性
+    if (!e.key) return parts.join('+');
+    
     const key = e.key.toUpperCase();
     let finalKey = key;
     if (key.startsWith('ARROW')) {

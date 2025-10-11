@@ -1,7 +1,6 @@
-use tauri::{Manager, AppHandle, State};
+use tauri::{Manager, AppHandle};
+use std::str::FromStr;
 use std::fs;
-use std::path::PathBuf;
-use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -11,40 +10,20 @@ use url::Url;
 use regex::Regex;
 use std::io::Write;
 use std::env;
-use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use tauri_plugin_store::StoreBuilder;
 
-// --- Settings Management ---
 
-#[derive(Serialize, Deserialize, Clone)]
-struct AppSettings {
-    #[serde(skip_serializing)]
-    api_key: String,
-    encrypted_api_key: String,
-    api_url: String,
-    model_name: String,
-    shortcut: String,
-    system_prompt: String,
-    api_type: String, // "openai" or "openai-compatible"
-    system_prompt_preset: String, // "default", "minimal", or "custom"
+
+#[tauri::command]
+fn register_shortcut(app: AppHandle, shortcut: String) -> Result<(), String> {
+    let shortcut_manager = app.global_shortcut();
+    let _ = shortcut_manager.unregister_all();
+    let shortcut = Shortcut::from_str(&shortcut).map_err(|e| e.to_string())?;
+    shortcut_manager.register(shortcut).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
-impl Default for AppSettings {
-    fn default() -> Self {
-        let default_api_key = "your_api_key_here".to_string();
-        let encrypted_key = BASE64.encode(&default_api_key);
-        
-        Self {
-            api_key: default_api_key,
-            encrypted_api_key: encrypted_key,
-            api_url: "https://api.openai.com/v1/chat/completions".to_string(),
-            model_name: "gpt-4o-mini".to_string(),
-            shortcut: "Alt+Space".to_string(),
-            system_prompt: "You are a helpful assistant.".to_string(),
-            api_type: "openai".to_string(),
-            system_prompt_preset: "default".to_string(),
-        }
-    }
-}
+// --- Security Utilities ---
 
 // --- Security Utilities ---
 
@@ -154,15 +133,6 @@ impl InputValidator {
 struct SecurityLogger;
 
 impl SecurityLogger {
-    fn log_security_event(event: &str, level: &str) {
-        let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-        let log_entry = format!("[{}] [{}] {}\n", timestamp, level, event);
-        
-        // 同时在控制台输出（仅调试模式）
-        #[cfg(debug_assertions)]
-        println!("Security Event: {}", log_entry.trim());
-    }
-    
     fn log_security_event_with_file(app: &AppHandle, event: &str, level: &str) {
         let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         let log_entry = format!("[{}] [{}] {}\n", timestamp, level, event);
@@ -200,111 +170,88 @@ impl SecurityLogger {
     }
 }
 
-struct SettingsState(Mutex<AppSettings>);
-
-fn get_settings_path(app: &AppHandle) -> PathBuf {
-    app.path().app_config_dir().unwrap().join("settings.json")
-}
-
-fn load_settings(app: &AppHandle) -> AppSettings {
-    let path = get_settings_path(app);
-    if path.exists() {
-        let content = fs::read_to_string(path).unwrap_or_default();
-        let loaded: Result<AppSettings, _> = serde_json::from_str(&content);
-        match loaded {
-            Ok(mut settings) => {
-                let default = AppSettings::default();
-                
-                // 解密API密钥
-                if let Ok(bytes) = BASE64.decode(&settings.encrypted_api_key) {
-                    if let Ok(decrypted_key) = String::from_utf8(bytes) {
-                        settings.api_key = decrypted_key;
-                    } else {
-                        settings.api_key = default.api_key.clone();
-                        settings.encrypted_api_key = default.encrypted_api_key.clone();
-                    }
-                } else {
-                    settings.api_key = default.api_key.clone();
-                    settings.encrypted_api_key = default.encrypted_api_key.clone();
-                }
-                
-                if settings.api_url.is_empty() { settings.api_url = default.api_url; }
-                if settings.model_name.is_empty() { settings.model_name = default.model_name; }
-                if settings.shortcut.is_empty() { settings.shortcut = default.shortcut; }
-                if settings.system_prompt.is_empty() { settings.system_prompt = default.system_prompt; }
-                if settings.system_prompt_preset.is_empty() { settings.system_prompt_preset = default.system_prompt_preset; }
-                
-                settings
-            },
-            Err(_) => AppSettings::default(),
-        }
-    } else {
-        AppSettings::default()
-    }
-}
-
-fn save_settings(app: &AppHandle, settings: &AppSettings) -> Result<(), String> {
-    let path = get_settings_path(app);
-    
-    // 创建要保存的设置副本，加密API密钥
-    let mut settings_to_save = settings.clone();
-    settings_to_save.encrypted_api_key = BASE64.encode(&settings.api_key);
-    settings_to_save.api_key = String::new(); // 清除明文API密钥
-    
-    let json = serde_json::to_string_pretty(&settings_to_save).map_err(|e| e.to_string())?;
-    fs::write(path, json).map_err(|e| e.to_string())
-}
-
 // --- Tauri Commands ---
-
-#[tauri::command]
-fn get_settings(state: State<SettingsState>) -> Result<AppSettings, String> {
-    Ok(state.0.lock().unwrap().clone())
-}
-
-#[tauri::command]
-fn set_settings(app: AppHandle, settings: AppSettings, state: State<SettingsState>) -> Result<(), String> {
-    // 输入验证
-    if let Err(e) = InputValidator::validate_url(&settings.api_url) {
-        SecurityLogger::log_security_violation(&app, &format!("Invalid URL in settings: {}", e));
-        return Err(e);
-    }
-    
-    if let Err(e) = InputValidator::validate_model_name(&settings.model_name) {
-        SecurityLogger::log_security_violation(&app, &format!("Invalid model name: {}", e));
-        return Err(e);
-    }
-    
-    // 清理系统提示
-    let sanitized_prompt = InputValidator::sanitize_system_prompt(&settings.system_prompt);
-    let mut safe_settings = settings;
-    safe_settings.system_prompt = sanitized_prompt;
-    
-    let old_shortcut = state.0.lock().unwrap().shortcut.clone();
-    app.global_shortcut().unregister(old_shortcut.as_str()).unwrap_or_else(|e| {
-        SecurityLogger::log_error(&app, &format!("Failed to unregister old shortcut: {}", e));
-    });
-
-    let new_shortcut = safe_settings.shortcut.clone();
-    app.global_shortcut().register(new_shortcut.as_str()).map_err(|e| {
-        app.global_shortcut().register(old_shortcut.as_str()).unwrap_or_else(|e2| {
-            SecurityLogger::log_error(&app, &format!("Failed to re-register old shortcut: {}", e2));
-        });
-        SecurityLogger::log_error(&app, &format!("Failed to register new shortcut '{}': {}", new_shortcut, e));
-        format!("Failed to register new shortcut '{}': {}", new_shortcut, e)
-    })?;
-
-    save_settings(&app, &safe_settings)?;
-    *state.0.lock().unwrap() = safe_settings;
-    
-    SecurityLogger::log_security_event_with_file(&app, "Settings updated successfully", "INFO");
-    Ok(())
-}
 
 #[tauri::command]
 fn open_config_directory(app: AppHandle) -> Result<(), String> {
     let path = app.path().app_config_dir().map_err(|e| e.to_string())?;
     app.opener().open_url(path.to_string_lossy(), None::<String>).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn get_settings(app: AppHandle) -> Result<serde_json::Value, String> {
+    let config_dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    let path = config_dir.join("settings.dat");
+    let store = match StoreBuilder::new(app.app_handle(), path).build() {
+        Ok(store) => store,
+        Err(e) => return Err(e.to_string()),
+    };
+    let _ = store.reload();
+
+    let mut settings = serde_json::Map::new();
+    
+    // 读取所有设置值
+    if let Some(api_key) = store.get("api_key") {
+        settings.insert("api_key".to_string(), api_key.clone());
+    }
+    if let Some(api_url) = store.get("api_url") {
+        settings.insert("api_url".to_string(), api_url.clone());
+    }
+    if let Some(model_name) = store.get("model_name") {
+        settings.insert("model_name".to_string(), model_name.clone());
+    }
+    if let Some(shortcut) = store.get("shortcut") {
+        settings.insert("shortcut".to_string(), shortcut.clone());
+    }
+    if let Some(system_prompt) = store.get("system_prompt") {
+        settings.insert("system_prompt".to_string(), system_prompt.clone());
+    }
+    if let Some(api_type) = store.get("api_type") {
+        settings.insert("api_type".to_string(), api_type.clone());
+    }
+    if let Some(clear_chat_shortcut) = store.get("clear_chat_shortcut") {
+        settings.insert("clear_chat_shortcut".to_string(), clear_chat_shortcut.clone());
+    }
+
+    Ok(serde_json::Value::Object(settings))
+}
+
+#[tauri::command]
+fn set_settings(app: AppHandle, settings: serde_json::Value) -> Result<(), String> {
+    let config_dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    let path = config_dir.join("settings.dat");
+    let store = match StoreBuilder::new(app.app_handle(), path).build() {
+        Ok(store) => store,
+        Err(e) => return Err(e.to_string()),
+    };
+    let _ = store.reload();
+
+    // 保存所有设置值
+    if let Some(api_key) = settings.get("api_key") {
+        store.set("api_key", api_key.clone());
+    }
+    if let Some(api_url) = settings.get("api_url") {
+        store.set("api_url", api_url.clone());
+    }
+    if let Some(model_name) = settings.get("model_name") {
+        store.set("model_name", model_name.clone());
+    }
+    if let Some(shortcut) = settings.get("shortcut") {
+        store.set("shortcut", shortcut.clone());
+        let _ = register_shortcut(app.clone(), shortcut.as_str().unwrap().to_string());
+    }
+    if let Some(system_prompt) = settings.get("system_prompt") {
+        store.set("system_prompt", system_prompt.clone());
+    }
+    if let Some(api_type) = settings.get("api_type") {
+        store.set("api_type", api_type.clone());
+    }
+    if let Some(clear_chat_shortcut) = settings.get("clear_chat_shortcut") {
+        store.set("clear_chat_shortcut", clear_chat_shortcut.clone());
+    }
+
+    store.save().map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -392,6 +339,7 @@ struct ConversationMessage {
 struct AIRequest {
     model: String,
     messages: Vec<ConversationMessage>,
+    stream: bool,
 }
 
 // OpenAI 格式响应
@@ -419,11 +367,56 @@ struct ResponseMessage {
 }
 
 #[tauri::command]
-async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>, state: State<'_, SettingsState>) -> Result<String, String> {
-    let settings = state.0.lock().unwrap().clone();
+async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>) -> Result<String, String> {
+    let config_dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    let path = config_dir.join("settings.dat");
+    let store = match StoreBuilder::new(app.app_handle(), path).build() {
+        Ok(store) => store,
+        Err(e) => return Err(e.to_string()),
+    };
+    let _ = store.reload();
+
+    let api_key = store.get("api_key").map(|v| v.to_string()).unwrap_or_default();
+    
+    // 清理 API 密钥 - 移除可能的引号和多余空格
+    let api_key = api_key.trim().to_string();
+    let api_key = api_key.trim_matches('"').trim_matches('\'').to_string();
+    let api_url = store.get("api_url").map(|v| v.to_string()).unwrap_or("https://api.openai.com/v1/chat/completions".to_string());
+    
+    // 验证 API URL
+    if api_url.trim().is_empty() {
+        SecurityLogger::log_security_violation(&app, "API URL is empty");
+        return Err("API URL cannot be empty. Please set it in the settings.".to_string());
+    }
+    
+    // 确保 URL 是有效的 - 移除可能的引号和多余空格
+    let api_url = api_url.trim().to_string();
+    let api_url = api_url.trim_matches('"').to_string();
+    
+    // 确保 URL 有协议前缀
+    let api_url = if !api_url.starts_with("http://") && !api_url.starts_with("https://") {
+        format!("https://{}", api_url)
+    } else {
+        api_url
+    };
+    
+    // 清理模型名称 - 移除可能的引号和多余空格
+    let model_name = store.get("model_name").map(|v| v.to_string()).unwrap_or("gpt-4o-mini".to_string());
+    let model_name = model_name.trim().to_string();
+    let model_name = model_name.trim_matches('"').trim_matches('\'').to_string();
+    
+    // 清理系统提示 - 移除可能的引号和多余空格
+    let system_prompt = store.get("system_prompt").map(|v| v.to_string()).unwrap_or("You are a helpful assistant.".to_string());
+    let system_prompt = system_prompt.trim().to_string();
+    let system_prompt = system_prompt.trim_matches('"').trim_matches('\'').to_string();
+    
+    // 清理 API 类型
+    let api_type = store.get("api_type").map(|v| v.to_string()).unwrap_or("openai".to_string());
+    let api_type = api_type.trim().to_string();
+    let api_type = api_type.trim_matches('"').trim_matches('\'').to_string();
 
     // API密钥验证
-    if settings.api_key.is_empty() || settings.api_key == "your_api_key_here" {
+    if api_key.is_empty() || api_key == "your_api_key_here" {
         SecurityLogger::log_security_violation(&app, "API key not set");
         return Err("Please set your API key in the settings.".to_string());
     }
@@ -439,16 +432,16 @@ async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>, state: State
     }
 
     let mut messages_to_send = Vec::new();
-    if !settings.system_prompt.is_empty() {
+    if !system_prompt.is_empty() {
         messages_to_send.push(ConversationMessage {
             role: "system".to_string(),
-            content: settings.system_prompt.clone(),
+            content: system_prompt.clone(),
         });
     }
     messages_to_send.extend(safe_messages);
 
     // 记录API请求
-    SecurityLogger::log_api_request(&app, &settings.api_url, &settings.model_name);
+    SecurityLogger::log_api_request(&app, &api_url, &model_name);
 
     let client = Client::builder()
         .timeout(Duration::from_secs(30)) // 设置超时
@@ -459,20 +452,30 @@ async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>, state: State
         })?;
 
     let request_body = AIRequest {
-        model: settings.model_name.clone(),
+        model: model_name.clone(),
         messages: messages_to_send,
+        stream: false,
     };
 
-    let mut request = client.post(&settings.api_url);
+    // 调试：记录请求详情
+    println!("=== DEBUG API REQUEST ===");
+    println!("API URL: {}", api_url);
+    println!("Model Name: {}", model_name);
+    println!("API Type: {}", api_type);
+    println!("Request Body: {}", serde_json::to_string_pretty(&request_body).unwrap_or("Failed to serialize".to_string()));
+    println!("=== END DEBUG ===");
+
+    let mut request = client.post(&api_url);
+    
+    // 设置 Content-Type 头
+    request = request.header("Content-Type", "application/json");
     
     // 根据 API 类型设置认证方式
-    if settings.api_type == "openai" {
-        request = request.bearer_auth(&settings.api_key);
+    if api_type == "openai" {
+        request = request.bearer_auth(&api_key);
     } else {
-        // 对于兼容 API，通常使用 Bearer 认证或 API Key 头
-        request = request.bearer_auth(&settings.api_key);
-        // 添加一些常见的兼容 API 头
-        request = request.header("Content-Type", "application/json");
+        // 对于兼容 API，直接设置 Authorization 头
+        request = request.header("Authorization", format!("Bearer {}", api_key));
     }
     
     let res = request
@@ -539,7 +542,7 @@ async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>, state: State
         }
         
         // 如果无法解析为标准格式，返回原始响应用于调试
-        SecurityLogger::log_error(&app, &format!("Unable to parse API response. URL: {}, Model: {}", settings.api_url, settings.model_name));
+        SecurityLogger::log_error(&app, &format!("Unable to parse API response. URL: {}, Model: {}", api_url, model_name));
         Err(format!("Unable to parse API response. Please check if the API endpoint and model name are correct. Raw response: {}", response_text))
     } else {
         let status = res.status();
@@ -566,7 +569,6 @@ async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>, state: State
         Err(format!("{} ({}): {}\nCheck your API endpoint URL and model name in settings.", error_message, status, error_body))
     }
 }
-
 // --- Window and App Setup ---
 
 fn toggle_window_visibility(handle: &AppHandle) {
@@ -634,41 +636,27 @@ pub fn run() {
     };
 
     tauri::Builder::default()
+        .setup(|app| {
+            let app_handle = app.handle().clone();
+            let settings = get_settings(app_handle.clone()).unwrap_or_default();
+            if let Some(shortcut) = settings.get("shortcut") {
+                let _ = register_shortcut(app_handle, shortcut.as_str().unwrap().to_string());
+            }
+            Ok(())
+        })
         .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(handler).build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .manage(SettingsState(Mutex::new(AppSettings::default())))
-        .setup(|app| {
-            let handle = app.handle().clone();
-            
-            // 执行安全检查
-            perform_security_checks(&handle);
-            
-            let config_dir = app.path().app_config_dir().unwrap();
-            if !config_dir.exists() {
-                fs::create_dir_all(&config_dir).unwrap();
-            }
-
-            let settings = load_settings(&handle);
-            let state: State<SettingsState> = app.state();
-            *state.0.lock().unwrap() = settings.clone();
-
-            let shortcut_to_register = settings.shortcut;
-            handle.global_shortcut().register(shortcut_to_register.as_str()).unwrap_or_else(|err| {
-                SecurityLogger::log_error(&handle, &format!("Failed to register global shortcut '{}': {}", shortcut_to_register, err));
-            });
-
-            SecurityLogger::log_security_event_with_file(&handle, "Application started successfully", "INFO");
-            Ok(())
-        })
+        .plugin(tauri_plugin_store::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             ask_ai,
+            open_config_directory,
+            extract_text,
             get_settings,
             set_settings,
-            open_config_directory,
-            extract_text
+            register_shortcut
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
