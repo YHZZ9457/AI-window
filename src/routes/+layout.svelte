@@ -5,14 +5,17 @@
   import { onMount } from 'svelte';
   import { _, isLoading } from 'svelte-i18n';
   import { chat } from '$lib/stores/chat.store';
-  import { clearChatShortcut } from '$lib/stores/settings.store';
+  import { clearChatShortcut, borderless, minimalMode, minimalModeShortcut } from '$lib/stores/settings.store';
+  import { invoke } from '@tauri-apps/api/core';
 
-  // Reactive statement to initialize chat when i18n is ready.
-  // This is safe for both SSR and client-side.
-  $: if (!$isLoading) {
-    // Use clearChat to ensure the translated message is always set after i18n loads.
-    chat.clearChat($_('home.initialMessage'));
-  }
+  let { children } = $props();
+
+  $effect(() => {
+    if (!$isLoading) {
+      // Use clearChat to ensure the translated message is always set after i18n loads.
+      chat.clearChat($_('home.initialMessage'));
+    }
+  });
 
   onMount(() => {
     // Apply initial theme
@@ -29,12 +32,29 @@
     };
   });
 
+  $effect(() => {
+    if ($borderless !== undefined) {
+      invoke('set_decorations', { decorations: !$borderless });
+    }
+  });
+
+  // $effect(() => {
+  //   if ($minimalMode !== undefined) {
+  //     invoke('set_minimal_mode', { minimal: $minimalMode });
+  //     console.log('Minimal mode:', $minimalMode);
+  //   }
+  // });
+
   function handleKeyDown(event: KeyboardEvent) {
     const currentShortcut = getCurrentShortcut(event);
     if (currentShortcut === $clearChatShortcut) {
       event.preventDefault();
       chat.clearChat($_('home.initialMessage'));
     }
+    // } else if (currentShortcut === $minimalModeShortcut) {
+    //   event.preventDefault();
+    //   minimalMode.set(!$minimalMode);
+    // }
   }
 
   function getCurrentShortcut(e: KeyboardEvent): string {
@@ -73,9 +93,9 @@
 
 </svelte:head>
 
-<div class="app">
+<div class="app" data-tauri-drag-region>
   {#if !$isLoading}
-    <slot />
+    {@render children()}
   {:else}
     <!-- You can add a loading spinner here if you want -->
   {/if}

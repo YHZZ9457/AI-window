@@ -1,5 +1,7 @@
 # AI Companion / AI 助手
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A modern, minimalist desktop AI assistant application built with SvelteKit and Tauri.
 
 一个使用 SvelteKit 和 Tauri 构建的现代化、极简主义桌面 AI 助手应用。
@@ -25,6 +27,13 @@ A modern, minimalist desktop AI assistant application built with SvelteKit and T
 - 💾 **导出对话** - 将对话保存为 JSON 文件
 - ⌨️ **全局快捷键** - 可自定义的键盘快捷键快速访问
 - 📎 **文件附件** - 通过按钮、粘贴或拖拽上传文本、PDF 和 Word 文件
+
+## Downloads / 下载
+
+You can download the latest version of AI Companion from the [GitHub Releases](https://github.com/YHZZ9457/AI-window/releases) page.
+
+您可以从 [GitHub Releases](https://github.com/YHZZ9457/AI-window/releases) 页面下载 AI 助手的最新版本。
+
 ## Screenshots / 截图
 
 ### Main Chat Interface / 主聊天界面
@@ -220,6 +229,18 @@ We welcome contributions! Please feel free to submit issues and pull requests.
 3. Make your changes / 进行修改
 4. Test your changes / 测试修改
 5. Submit a pull request / 提交拉取请求
+
+## Changelog / 更新日志
+
+### v0.4.0 (2025-10-14)
+
+- **Performance:** Optimized the application by removing unused code and fixing warnings.
+- **Refactor:** Improved code readability by refactoring imports.
+- **UI:** Hid the minimalist mode shortcut from the settings page.
+
+- **性能:** 通过移除未使用的代码和修复警告来优化应用程序。
+- **重构:** 通过重构导入来提高代码可读性。
+- **界面:** 从设置页面隐藏了极简模式快捷键。
 
 ## License / 许可证
 

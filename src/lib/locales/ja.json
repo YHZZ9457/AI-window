@@ -21,7 +21,8 @@
       "settings": "設定",
       "language": "言語を切り替える",
       "attach": "ファイルを添付"
-    }
+    },
+    "copySuccess": "コピーしました"
   },
   "settings": {
     "title": "設定",
@@ -59,7 +60,13 @@
       "shortcutCancel": "キャンセル",
       "shortcutHintRecording": "目的のキーの組み合わせを押してください... (Escでキャンセル)",
       "clearChatShortcut": "チャットクリアショートカット",
-      "clearChatShortcutHint": "チャットメッセージをクリアするキーボードショートカットを記録してください"
+      "clearChatShortcutHint": "チャットメッセージをクリアするキーボードショートカットを記録してください",
+      "borderless": "ボーダーレスモード",
+      "borderlessHint": "ウィンドウの装飾を削除します。非インタラクティブな領域からウィンドウをドラッグできます。",
+      "minimalMode": "ミニマルモード",
+      "minimalModeHint": "クリーンなフローティングチャットウィンドウに切り替え、透明な背景で常に最前面に表示されます。",
+      "minimalModeShortcut": "ミニマルモードショートカット",
+      "minimalModeShortcutHint": "ミニマルモードを切り替えるキーボードショートカットを記録してください"
     },
     "language": {
       "title": "言語"

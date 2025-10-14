@@ -15,6 +15,22 @@ use tauri_plugin_store::StoreBuilder;
 
 
 #[tauri::command]
+fn set_decorations(window: tauri::Window, decorations: bool) {
+  let _ = window.set_decorations(decorations);
+}
+
+#[tauri::command]
+fn set_minimal_mode(app: tauri::AppHandle, minimal: bool) {
+  if let Some(window) = app.get_webview_window("main") {
+    // 移除窗口装饰
+    let _ = window.set_decorations(!minimal);
+    
+    // 设置窗口置顶
+    let _ = window.set_always_on_top(minimal);
+  }
+}
+
+#[tauri::command]
 fn register_shortcut(app: AppHandle, shortcut: String) -> Result<(), String> {
     let shortcut_manager = app.global_shortcut();
     let _ = shortcut_manager.unregister_all();
@@ -400,10 +416,20 @@ async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>) -> Result<St
         api_url
     };
     
+    if let Err(e) = InputValidator::validate_url(&api_url) {
+        SecurityLogger::log_security_violation(&app, &format!("Invalid API URL: {}", e));
+        return Err(e);
+    }
+    
     // 清理模型名称 - 移除可能的引号和多余空格
     let model_name = store.get("model_name").map(|v| v.to_string()).unwrap_or("gpt-4o-mini".to_string());
     let model_name = model_name.trim().to_string();
     let model_name = model_name.trim_matches('"').trim_matches('\'').to_string();
+
+    if let Err(e) = InputValidator::validate_model_name(&model_name) {
+        SecurityLogger::log_security_violation(&app, &format!("Invalid model name: {}", e));
+        return Err(e);
+    }
     
     // 清理系统提示 - 移除可能的引号和多余空格
     let system_prompt = store.get("system_prompt").map(|v| v.to_string()).unwrap_or("You are a helpful assistant.".to_string());
@@ -637,6 +663,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .setup(|app| {
+            perform_security_checks(app.handle());
             let app_handle = app.handle().clone();
             let settings = get_settings(app_handle.clone()).unwrap_or_default();
             if let Some(shortcut) = settings.get("shortcut") {
@@ -650,13 +677,16 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_store::Builder::new().build())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .invoke_handler(tauri::generate_handler![
             ask_ai,
             open_config_directory,
             extract_text,
             get_settings,
             set_settings,
-            register_shortcut
+            register_shortcut,
+            set_decorations,
+            set_minimal_mode
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

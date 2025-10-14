@@ -21,7 +21,8 @@
       "settings": "设置",
       "language": "切换语言",
       "attach": "添加附件"
-    }
+    },
+    "copySuccess": "复制成功"
   },
   "settings": {
     "title": "设置",
@@ -61,7 +62,13 @@
       "shortcutCancel": "取消",
       "shortcutHintRecording": "请按下您想要的快捷键组合... (按 Esc 取消)",
       "clearChatShortcut": "清空聊天快捷键",
-      "clearChatShortcutHint": "录制清空聊天消息的键盘快捷键"
+      "clearChatShortcutHint": "录制清空聊天消息的键盘快捷键",
+      "borderless": "无边框模式",
+      "borderlessHint": "移除窗口装饰。可以从任何非交互区域拖动窗口。",
+      "minimalMode": "极简模式",
+      "minimalModeHint": "切换到简洁的悬浮聊天窗口，透明背景且始终置顶显示。",
+      "minimalModeShortcut": "极简模式快捷键",
+      "minimalModeShortcutHint": "录制切换极简模式的键盘快捷键"
     },
     "language": {
       "title": "语言"

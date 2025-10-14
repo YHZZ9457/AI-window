@@ -1,21 +1,25 @@
 <script lang="ts">
-  import SendIcon from '$lib/components/icons/SendIcon.svelte';
-  import LoadingIcon from '$lib/components/icons/LoadingIcon.svelte';
-  import AiIcon from '$lib/components/icons/AiIcon.svelte';
-  import UserIcon from '$lib/components/icons/UserIcon.svelte';
-  import SettingsIcon from '$lib/components/icons/SettingsIcon.svelte';
-  import LanguageIcon from '$lib/components/icons/LanguageIcon.svelte';
-  import ThemeIcon from '$lib/components/icons/ThemeIcon.svelte';
-  import ExportIcon from '$lib/components/icons/ExportIcon.svelte';
-  import ClearIcon from '$lib/components/icons/ClearIcon.svelte';
-  import LogoIcon from '$lib/components/icons/LogoIcon.svelte';
-  import PlusIcon from '$lib/components/icons/PlusIcon.svelte';
-  import FileTextIcon from '$lib/components/icons/FileTextIcon.svelte';
+  import {
+    SendIcon,
+    LoadingIcon,
+    AiIcon,
+    UserIcon,
+    SettingsIcon,
+    LanguageIcon,
+    ThemeIcon,
+    ExportIcon,
+    ClearIcon,
+    LogoIcon,
+    PlusIcon,
+    FileTextIcon
+  } from '$lib/components/icons';
+  import Markdown from '$lib/components/Markdown.svelte';
   import { onMount, onDestroy } from 'svelte';
   import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   import { invoke } from '@tauri-apps/api/core';
   import { save, open } from '@tauri-apps/plugin-dialog';
-  import { writeTextFile, readTextFile, readFile } from '@tauri-apps/plugin-fs';
+  import { writeTextFile, readFile } from '@tauri-apps/plugin-fs';
+  import { writeText } from '@tauri-apps/plugin-clipboard-manager';
   import { theme } from '$lib/stores/theme';
   import { _, locale } from 'svelte-i18n';
   import { chat } from '$lib/stores/chat.store';
@@ -35,6 +39,15 @@
   let languageMenuElement: HTMLElement;
   let attachedFileName = $state<string | null>(null);
   let attachedFileContent = $state<string | null>(null);
+  let copiedMessageIndex = $state<number | null>(null);
+
+  async function copy(text: string, index: number) {
+    await writeText(text);
+    copiedMessageIndex = index;
+    setTimeout(() => {
+      copiedMessageIndex = null;
+    }, 2000);
+  }
 
   function scrollToBottom() {
     if (outputAreaElement) {
@@ -297,10 +310,10 @@
 </script>
 
 <main data-tauri-drag-region class="glass">
-  <div class="header">
-    <div class="header-left">
-      <LogoIcon />
-      <h1 class="title">{$_('home.title')}</h1>
+  <div class="header" data-tauri-drag-region>
+    <div class="header-left" data-tauri-drag-region>
+      <LogoIcon class="logo" />
+      <h1 class="title" data-tauri-drag-region>{$_('home.title')}</h1>
     </div>
     <div class="header-buttons">
       <button onclick={() => chat.clearChat($_('home.initialMessage'))} class="header-button" aria-label={$_('home.buttons.clear')} title={`${$_('home.buttons.clear')} (${$clearChatShortcut})`}>
@@ -336,7 +349,10 @@
   <div class="chat-container">
     <div class="messages-container glass-light" bind:this={outputAreaElement}>
       {#each $chat as message, i (i)}
-        <div class="message" class:user={message.role === 'user'} class:assistant={message.role === 'assistant'}>
+        <div class="message" class:user={message.role === 'user'} class:assistant={message.role === 'assistant'} onclick={() => copy(message.content, i)} onkeydown={(e) => e.key === 'Enter' && copy(message.content, i)} tabindex="0" role="button">
+          {#if copiedMessageIndex === i}
+            <div class="copied-toast">{$_('home.copySuccess')}</div>
+          {/if}
           <div class="message-header">
             <div class="role-icon">
               {#if message.role === 'user'}
@@ -350,7 +366,11 @@
           </div>
           <div class="content">
             {#if message.content}
+            {#if message.role === 'assistant'}
+              <Markdown text={message.content} />
+            {:else}
               <div class="message-text">{message.content}</div>
+            {/if}
             {/if}
             {#if message.attachment}
               <div class="attachment-block">
@@ -403,7 +423,7 @@
         />
         <button onclick={handleSubmit} disabled={isLoading} class="send-button">
           {#if isLoading}
-            <LoadingIcon />
+            <LoadingIcon class="loading-icon" />
           {:else}
             <SendIcon />
           {/if}
@@ -424,15 +444,15 @@
     background: var(--bg-primary);
   }
 
-  .header {
+    .header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     padding: var(--spacing-md) var(--spacing-lg);
-    background: var(--bg-primary);
     border-bottom: 1px solid var(--border-primary);
     flex-shrink: 0;
     min-height: 60px;
+    -webkit-app-region: drag;
   }
 
   .header-left {
@@ -441,12 +461,6 @@
     gap: var(--spacing-md);
   }
 
-  .logo {
-    width: 32px;
-    height: 32px;
-    color: var(--text-primary);
-    opacity: 0.9;
-  }
 
   .title {
     font-size: var(--font-size-xl);
@@ -459,6 +473,7 @@
     display: flex;
     gap: var(--spacing-sm);
     align-items: center;
+    -webkit-app-region: no-drag;
   }
 
   .header-button {
@@ -574,6 +589,19 @@
     animation: fadeIn 0.3s ease-out;
     border: 1px solid var(--border-primary);
     box-shadow: 0 1px 2px var(--shadow-soft);
+    position: relative;
+    cursor: pointer;
+  }
+
+  .copied-toast {
+    position: absolute;
+    top: -20px;
+    right: 10px;
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-size: 12px;
   }
 
   .message.assistant {
@@ -635,7 +663,6 @@
   }
 
   .content {
-    white-space: pre-wrap;
     line-height: 1.5;
     font-size: var(--font-size-sm);
     display: flex;
@@ -838,9 +865,6 @@
     cursor: not-allowed;
   }
 
-  .loading-icon {
-    animation: spin 1s linear infinite;
-  }
 
   /* Responsive design */
   @media (max-width: 640px) {

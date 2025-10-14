@@ -21,7 +21,8 @@
       "settings": "設定",
       "language": "切換語言",
       "attach": "新增附件"
-    }
+    },
+    "copySuccess": "複製成功"
   },
   "settings": {
     "title": "設定",
@@ -59,7 +60,13 @@
       "shortcutCancel": "取消",
       "shortcutHintRecording": "請按下您想要的快捷鍵組合... (按 Esc 取消)",
       "clearChatShortcut": "清空聊天快捷鍵",
-      "clearChatShortcutHint": "錄製清空聊天訊息的鍵盤快捷鍵"
+      "clearChatShortcutHint": "錄製清空聊天訊息的鍵盤快捷鍵",
+      "borderless": "無邊框模式",
+      "borderlessHint": "移除視窗裝飾。可以從任何非互動區域拖動視窗。",
+      "minimalMode": "極簡模式",
+      "minimalModeHint": "切換到簡潔的懸浮聊天視窗，透明背景且始終置頂顯示。",
+      "minimalModeShortcut": "極簡模式快捷鍵",
+      "minimalModeShortcutHint": "錄製切換極簡模式的鍵盤快捷鍵"
     },
     "language": {
       "title": "語言"

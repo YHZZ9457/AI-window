@@ -45,3 +45,6 @@ export const modelName = createPersistentStore('model_name', 'gpt-4o-mini');
 export const shortcut = createPersistentStore('shortcut', 'Alt+Space');
 export const systemPrompt = createPersistentStore('system_prompt', 'You are a helpful assistant.');
 export const apiType = createPersistentStore('api_type', 'openai');
+export const borderless = createPersistentStore('borderless', false);
+export const minimalMode = createPersistentStore('minimal_mode', false);
+export const minimalModeShortcut = createPersistentStore('minimal_mode_shortcut', 'Ctrl+Shift+M');

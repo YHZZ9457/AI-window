@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { _ } from 'svelte-i18n';
-  import { clearChatShortcut } from '$lib/stores/settings.store';
+  import { clearChatShortcut, borderless, minimalMode, minimalModeShortcut } from '$lib/stores/settings.store';
 
   let settings = $state({
     api_key: '',
@@ -17,8 +17,10 @@
   let openSection = $state('aiConfig'); // aiConfig, appSettings
   let isRecording = $state(false);
   let isRecordingClearChat = $state(false);
+  let isRecordingMinimalMode = $state(false);
   let previousShortcut = '';
   let previousClearChatShortcut = '';
+  let previousMinimalModeShortcut = '';
 
   const handleShortcutKeydown = (event: KeyboardEvent) => {
     event.preventDefault();
@@ -126,6 +128,62 @@
     window.removeEventListener('keydown', handleClearChatShortcutKeydown, { capture: true });
   }
 
+  const handleMinimalModeShortcutKeydown = (event: KeyboardEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.key === 'Escape') {
+      cancelMinimalModeRecording();
+      return;
+    }
+
+    if (['Control', 'Alt', 'Shift', 'Meta'].includes(event.key)) {
+        return;
+    }
+
+    const parts = [];
+    if (event.ctrlKey) parts.push('Ctrl');
+    if (event.altKey) parts.push('Alt');
+    if (event.shiftKey) parts.push('Shift');
+    if (event.metaKey) parts.push('Super');
+
+    const key = event.key.toUpperCase();
+    let finalKey = key;
+    if (key.startsWith('ARROW')) {
+        finalKey = key.substring(5);
+    }
+    if (finalKey === ' ') {
+        finalKey = 'SPACE';
+    }
+    parts.push(finalKey);
+
+    const isChar = event.key.length === 1 && event.key.match(/[a-zA-Z0-9]/);
+    if (parts.length > 0 && (!isChar || parts.length > 1)) {
+      minimalModeShortcut.set(parts.join('+'));
+    } else {
+      // Single character without modifiers, ignore
+      return;
+    }
+
+    isRecordingMinimalMode = false;
+    window.removeEventListener('keydown', handleMinimalModeShortcutKeydown, { capture: true });
+  };
+
+  function startMinimalModeRecording() {
+    previousMinimalModeShortcut = $minimalModeShortcut;
+    isRecordingMinimalMode = true;
+    minimalModeShortcut.set($_('settings.appSettings.shortcutRecording'));
+    window.addEventListener('keydown', handleMinimalModeShortcutKeydown, { capture: true });
+  }
+
+  function cancelMinimalModeRecording() {
+    isRecordingMinimalMode = false;
+    minimalModeShortcut.set(previousMinimalModeShortcut);
+    window.removeEventListener('keydown', handleMinimalModeShortcutKeydown, { capture: true });
+  }
+
+
+
   onMount(() => {
     invoke('get_settings').then((loadedSettings: any) => {
       const { clear_chat_shortcut, ...rest } = loadedSettings;
@@ -164,7 +222,8 @@
     };
   });
 
-  async function handleSave() {
+  async function handleSave(event: Event) {
+    event.preventDefault();
     try {
       const processedSettings = { ...settings, clear_chat_shortcut: $clearChatShortcut };
       processedSettings.api_url = normalizeApiUrl(processedSettings.api_url);
@@ -276,9 +335,9 @@
   }
 </script>
 
-<main class="glass">
+<main class="glass" data-tauri-drag-region>
   <div class="settings-container">
-    <div class="settings-header">
+    <div class="settings-header" data-tauri-drag-region>
       <a href="/" class="back-button">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M19 12H5"></path>
@@ -286,167 +345,182 @@
         </svg>
         {$_('settings.back')}
       </a>
-      <h2>{$_('settings.title')}</h2>
+      <h2 data-tauri-drag-region>{$_('settings.title')}</h2>
     </div>
     
-    <div class="settings-content">
-      <div class="settings-section">
-        <h3 class="accordion-header" onclick={() => toggleSection('aiConfig')}>
-          {$_('settings.aiConfig.title')}
-          <span class="chevron {openSection === 'aiConfig' ? 'open' : ''}"></span>
-        </h3>
-        <div class="accordion-content form-grid">
-            <div class="form-group">
-              <div class="form-group-header">
-                <label for="system-prompt-preset">{$_('settings.aiConfig.systemPromptPreset')}</label>
+    <form onsubmit={handleSave}>
+      <div class="settings-content">
+        <div class="settings-section">
+          <button class="accordion-header" onclick={() => toggleSection('aiConfig')} aria-expanded={openSection === 'aiConfig'}>
+            <span class="accordion-title">{$_('settings.aiConfig.title')}</span>
+            <span class="chevron {openSection === 'aiConfig' ? 'open' : ''}"></span>
+          </button>
+          {#if openSection === 'aiConfig'}
+          <div class="accordion-content form-grid">
+              <div class="form-group">
+                <div class="form-group-header">
+                  <label for="system-prompt-preset">{$_('settings.aiConfig.systemPromptPreset')}</label>
+                </div>
+                <select id="system-prompt-preset" bind:value={settings.system_prompt_preset} onchange={handlePresetChange}>
+                  <option value="default">{$_('settings.aiConfig.systemPromptPresetDefault')} - {$_('settings.aiConfig.systemPromptPresetDefaultDesc')}</option>
+                  <option value="minimal">{$_('settings.aiConfig.systemPromptPresetMinimal')} - {$_('settings.aiConfig.systemPromptPresetMinimalDesc')}</option>
+                  <option value="custom">{$_('settings.aiConfig.systemPromptPresetCustom')} - {$_('settings.aiConfig.systemPromptPresetCustomDesc')}</option>
+                </select>
               </div>
-              <select id="system-prompt-preset" bind:value={settings.system_prompt_preset} onchange={handlePresetChange}>
-                <option value="default">{$_('settings.aiConfig.systemPromptPresetDefault')} - {$_('settings.aiConfig.systemPromptPresetDefaultDesc')}</option>
-                <option value="minimal">{$_('settings.aiConfig.systemPromptPresetMinimal')} - {$_('settings.aiConfig.systemPromptPresetMinimalDesc')}</option>
-                <option value="custom">{$_('settings.aiConfig.systemPromptPresetCustom')} - {$_('settings.aiConfig.systemPromptPresetCustomDesc')}</option>
-              </select>
-            </div>
 
-            <div class="form-group span-2">
-              <div class="form-group-header">
-                <label for="system-prompt">{$_('settings.aiConfig.systemPrompt')}</label>
+              <div class="form-group span-2">
+                <div class="form-group-header">
+                  <label for="system-prompt">{$_('settings.aiConfig.systemPrompt')}</label>
+                </div>
+                <textarea id="system-prompt" bind:value={settings.system_prompt} rows="3" placeholder={$_('settings.aiConfig.systemPromptPlaceholder')}></textarea>
               </div>
-              <textarea id="system-prompt" bind:value={settings.system_prompt} rows="3" placeholder={$_('settings.aiConfig.systemPromptPlaceholder')}></textarea>
-            </div>
 
-            <div class="form-group">
-              <div class="form-group-header">
-                <label for="api-type">{$_('settings.aiConfig.apiType')}</label>
+              <div class="form-group">
+                <div class="form-group-header">
+                  <label for="api-type">{$_('settings.aiConfig.apiType')}</label>
+                </div>
+                <select id="api-type" bind:value={settings.api_type}>
+                  <option value="openai">{$_('settings.aiConfig.openai')}</option>
+                  <option value="openai-compatible">{$_('settings.aiConfig.openaiCompatible')}</option>
+                </select>
               </div>
-              <select id="api-type" bind:value={settings.api_type}>
-                <option value="openai">{$_('settings.aiConfig.openai')}</option>
-                <option value="openai-compatible">{$_('settings.aiConfig.openaiCompatible')}</option>
-              </select>
-            </div>
 
-            <div class="form-group">
-              <div class="form-group-header">
-                <label for="api-key">{$_('settings.aiConfig.apiKey')}</label>
+              <div class="form-group">
+                <div class="form-group-header">
+                  <label for="api-key">{$_('settings.aiConfig.apiKey')}</label>
+                </div>
+                <input 
+                  id="api-key" 
+                  type="password" 
+                  bind:value={settings.api_key} 
+                  placeholder={$_('settings.aiConfig.apiKeyPlaceholder')}
+                  onfocus={handleApiKeyFocus}
+                  onblur={handleApiKeyBlur}
+                />
               </div>
-              <input 
-                id="api-key" 
-                type="password" 
-                bind:value={settings.api_key} 
-                placeholder={$_('settings.aiConfig.apiKeyPlaceholder')}
-                onfocus={handleApiKeyFocus}
-                onblur={handleApiKeyBlur}
-              />
-            </div>
 
-            <div class="form-group span-2">
-              <div class="form-group-header">
-                <label for="api-url">{$_('settings.aiConfig.apiEndpoint')}</label>
+              <div class="form-group span-2">
+                <div class="form-group-header">
+                  <label for="api-url">{$_('settings.aiConfig.apiEndpoint')}</label>
+                </div>
+                <input 
+                  id="api-url" 
+                  type="text" 
+                  bind:value={settings.api_url} 
+                  placeholder={$_('settings.aiConfig.apiEndpointPlaceholder')} 
+                  onblur={handleUrlBlur}
+                />
+                <p class="hint">
+                  {#if settings.api_url && !settings.api_url.includes('/chat/completions')}
+                    {$_('settings.aiConfig.apiEndpointHintSave', { values: { url: normalizeApiUrl(settings.api_url) } })}
+                  {:else}
+                    {$_('settings.aiConfig.apiEndpointHint')}
+                  {/if}
+                </p>
               </div>
-              <input 
-                id="api-url" 
-                type="text" 
-                bind:value={settings.api_url} 
-                placeholder={$_('settings.aiConfig.apiEndpointPlaceholder')} 
-                onblur={handleUrlBlur}
-              />
-              <p class="hint">
-                {#if settings.api_url && !settings.api_url.includes('/chat/completions')}
-                  {$_('settings.aiConfig.apiEndpointHintSave', { values: { url: normalizeApiUrl(settings.api_url) } })}
-                {:else}
-                  {$_('settings.aiConfig.apiEndpointHint')}
-                {/if}
-              </p>
-            </div>
 
-            <div class="form-group">
-              <div class="form-group-header">
-                <label for="model-name">{$_('settings.aiConfig.modelName')}</label>
+              <div class="form-group">
+                <div class="form-group-header">
+                  <label for="model-name">{$_('settings.aiConfig.modelName')}</label>
+                </div>
+                <input id="model-name" type="text" bind:value={settings.model_name} placeholder={$_('settings.aiConfig.modelNamePlaceholder')} />
               </div>
-              <input id="model-name" type="text" bind:value={settings.model_name} placeholder={$_('settings.aiConfig.modelNamePlaceholder')} />
-            </div>
 
 
+          </div>
+          {/if}
         </div>
-      </div>
 
-      <div class="settings-section">
-        <h3 class="accordion-header" onclick={() => toggleSection('appSettings')}>
-            {$_('settings.appSettings.title')}
+        <div class="settings-section">
+          <button class="accordion-header" onclick={() => toggleSection('appSettings')} aria-expanded={openSection === 'appSettings'}>
+            <span class="accordion-title">{$_('settings.appSettings.title')}</span>
             <span class="chevron {openSection === 'appSettings' ? 'open' : ''}"></span>
-        </h3>
-        {#if openSection === 'appSettings'}
-        <div class="accordion-content">
-            <div class="form-group">
-              <label for="shortcut">{$_('settings.appSettings.shortcut')}</label>
-              <div class="shortcut-recorder">
-                <input id="shortcut" type="text" readonly bind:value={settings.shortcut} placeholder={$_('settings.appSettings.shortcutPlaceholder')} />
+          </button>
+          {#if openSection === 'appSettings'}
+          <div class="accordion-content form-grid">
+              <div class="form-group span-2">
+                <label for="shortcut">{$_('settings.appSettings.shortcut')}</label>
+                <div class="shortcut-recorder">
+                  <input id="shortcut" type="text" readonly bind:value={settings.shortcut} placeholder={$_('settings.appSettings.shortcutPlaceholder')} />
+                  {#if isRecording}
+                      <button class="secondary-button" onclick={cancelRecording}>{$_('settings.appSettings.shortcutCancel')}</button>
+                  {:else}
+                      <button class="primary-button" onclick={startRecording}>{$_('settings.appSettings.shortcutRecord')}</button>
+                  {/if}
+                </div>
                 {#if isRecording}
-                    <button class="secondary-button" onclick={cancelRecording}>{$_('settings.appSettings.shortcutCancel')}</button>
+                  <p class="hint">{$_('settings.appSettings.shortcutHintRecording')}</p>
                 {:else}
-                    <button class="primary-button" onclick={startRecording}>{$_('settings.appSettings.shortcutRecord')}</button>
+                  <p class="hint">{$_('settings.appSettings.shortcutHint')}</p>
                 {/if}
               </div>
-              {#if isRecording}
-                <p class="hint">{$_('settings.appSettings.shortcutHintRecording')}</p>
-              {:else}
-                <p class="hint">{$_('settings.appSettings.shortcutHint')}</p>
-              {/if}
-            </div>
 
-            <div class="form-group">
-              <label for="clear-chat-shortcut">{$_('settings.appSettings.clearChatShortcut')}</label>
-              <div class="shortcut-recorder">
-                <input id="clear-chat-shortcut" type="text" readonly bind:value={$clearChatShortcut} />
+              <div class="form-group span-2">
+                <label for="clear-chat-shortcut">{$_('settings.appSettings.clearChatShortcut')}</label>
+                <div class="shortcut-recorder">
+                  <input id="clear-chat-shortcut" type="text" readonly bind:value={$clearChatShortcut} />
+                  {#if isRecordingClearChat}
+                      <button class="secondary-button" onclick={cancelClearChatRecording}>{$_('settings.appSettings.shortcutCancel')}</button>
+                  {:else}
+                      <button class="primary-button" onclick={startClearChatRecording}>{$_('settings.appSettings.shortcutRecord')}</button>
+                  {/if}
+                </div>
                 {#if isRecordingClearChat}
-                    <button class="secondary-button" onclick={cancelClearChatRecording}>{$_('settings.appSettings.shortcutCancel')}</button>
+                  <p class="hint">{$_('settings.appSettings.shortcutHintRecording')}</p>
                 {:else}
-                    <button class="primary-button" onclick={startClearChatRecording}>{$_('settings.appSettings.shortcutRecord')}</button>
+                  <p class="hint">{$_('settings.appSettings.clearChatShortcutHint')}</p>
                 {/if}
               </div>
-              {#if isRecordingClearChat}
-                <p class="hint">{$_('settings.appSettings.shortcutHintRecording')}</p>
-              {:else}
-                <p class="hint">{$_('settings.appSettings.clearChatShortcutHint')}</p>
-              {/if}
-            </div>
+
+              <div class="form-group form-group-horizontal span-2">
+                <div class="form-group-header">
+                  <label for="borderless-toggle">{$_('settings.appSettings.borderless')}</label>
+                  <p class="hint" style="margin-top: 2px;">{$_('settings.appSettings.borderlessHint')}</p>
+                </div>
+                <label class="toggle-switch">
+                  <input id="borderless-toggle" type="checkbox" bind:checked={$borderless} />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+          </div>
+          {/if}
         </div>
+
+        <div class="actions">
+          <button type="submit" class="primary-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            {$_('settings.actions.save')}
+          </button>
+          <button class="secondary-button" onclick={() => invoke('open_config_directory')}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
+              <line x1="16" y1="5" x2="22" y2="5"></line>
+              <line x1="19" y1="2" x2="19" y2="8"></line>
+            </svg>
+            {$_('settings.actions.showConfig')}
+          </button>
+        </div>
+
+        {#if message}
+          <div class="message-banner {message.includes('Error') || message.includes('错') ? 'error' : 'success'}">
+            {message}
+          </div>
         {/if}
-      </div>
 
-      <div class="actions">
-        <button onclick={handleSave} class="primary-button">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-            <polyline points="17 21 17 13 7 13 7 21"></polyline>
-            <polyline points="7 3 7 8 15 8"></polyline>
-          </svg>
-          {$_('settings.actions.save')}
-        </button>
-        <button class="secondary-button" onclick={() => invoke('open_config_directory')}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
-            <line x1="16" y1="5" x2="22" y2="5"></line>
-            <line x1="19" y1="2" x2="19" y2="8"></line>
-          </svg>
-          {$_('settings.actions.showConfig')}
-        </button>
-      </div>
-
-      {#if message}
-        <div class="message-banner {message.includes('Error') || message.includes('错') ? 'error' : 'success'}">
-          {message}
-        </div>
-      {/if}
-
-      <div class="settings-section flat about-section">
-        <h3 class="static-header">{$_('settings.about.title')}</h3>
-        <div class="about-content">
-          <p><strong>{$_('settings.about.author')}:</strong> YHZZ9457</p>
-          <p><strong>{$_('settings.about.repository')}:</strong> <a href="https://github.com/YHZZ9457/AI-window" target="_blank">https://github.com/YHZZ9457/AI-window</a></p>
-          <p><strong>{$_('settings.about.contact')}:</strong> a15952149553@gmail.com / QQ: 2680159691</p>
+        <div class="settings-section flat about-section">
+          <h3 class="static-header">{$_('settings.about.title')}</h3>
+          <div class="about-content">
+            <p><strong>{$_('settings.about.author')}:</strong> YHZZ9457</p>
+            <p><strong>{$_('settings.about.repository')}:</strong> <a href="https://github.com/YHZZ9457/AI-window" target="_blank">https://github.com/YHZZ9457/AI-window</a></p>
+            <p><strong>{$_('settings.about.contact')}:</strong> a15952149553@gmail.com / QQ: 2680159691</p>
+          </div>
         </div>
       </div>
-    </div>
+    </form>
   </div>
 </main>
 
@@ -460,15 +534,15 @@
   }
 
   .settings-container {
-    padding: var(--spacing-md);
+    padding: var(--spacing-xl);
     height: 100%;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
     box-sizing: border-box;
-    max-width: 480px;
+    max-width: 560px;
     margin: 0 auto;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-lg);
   }
 
   .settings-header {
@@ -477,6 +551,7 @@
     justify-content: space-between;
     margin-bottom: var(--spacing-md);
     position: relative;
+    -webkit-app-region: drag;
   }
 
   .back-button {
@@ -495,6 +570,7 @@
     position: absolute;
     left: 0;
     top: 0;
+    -webkit-app-region: no-drag;
   }
 
   .back-button:hover {
@@ -515,15 +591,16 @@
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-md);
   }
 
   .settings-section {
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-xl);
     box-shadow: var(--shadow-soft);
     transition: all var(--transition-fast);
+    overflow: hidden;
   }
   .settings-section.flat {
       padding: var(--spacing-lg);
@@ -538,11 +615,31 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    transition: all var(--transition-fast);
+  }
+
+  .accordion-header:hover {
+    background: var(--bg-tertiary);
   }
 
   .accordion-content {
       padding: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
-      animation: fadeIn 0.2s ease-out;
+      animation: slideDown 0.3s ease-out;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .static-header {
@@ -568,23 +665,30 @@
   .form-group {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
   }
 
-  .form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+  .form-group-horizontal {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
     gap: var(--spacing-lg);
-  }
-
-  .form-group.span-2 {
-    grid-column: span 2;
   }
 
   .form-group-header {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-xl);
+  }
+
+  .form-group.span-2 {
+    grid-column: span 2;
   }
 
   @media (max-width: 640px) {
@@ -603,9 +707,9 @@
   }
 
   input, textarea, select {
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border-primary);
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: var(--spacing-md);
     font-size: var(--font-size-sm);
     font-family: inherit;
     color: var(--text-primary);
@@ -614,11 +718,13 @@
     outline: none;
     resize: vertical;
     width: 100%;
+    box-sizing: border-box;
   }
 
   input:focus, textarea:focus, select:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 2px var(--shadow-glow);
+    box-shadow: 0 0 0 3px var(--shadow-glow);
+    transform: translateY(-1px);
   }
 
   input::placeholder, textarea::placeholder {
@@ -653,8 +759,8 @@
     align-items: center;
     justify-content: center;
     gap: var(--spacing-sm);
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-radius: var(--radius-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--radius-lg);
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     font-family: inherit;
@@ -662,6 +768,7 @@
     transition: var(--transition-normal);
     border: none;
     outline: none;
+    min-height: 44px;
   }
 
   .primary-button {
@@ -686,113 +793,133 @@
     border-color: var(--primary);
   }
 
-  .message-banner {
-    padding: var(--spacing-md) var(--spacing-lg);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
+  /* Toggle Switch Styles */
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 28px;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    transition: var(--transition-normal);
+    border-radius: 34px;
+  }
+
+  .toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: var(--bg-primary);
+    transition: var(--transition-normal);
+    border-radius: 50%;
+  }
+
+  input:checked + .toggle-slider {
+    background-color: var(--primary);
+    border-color: var(--primary);
+  }
+
+  input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+  }
+
+    .message-banner {
+    padding: var(--spacing-md);
+    border-radius: var(--radius-lg);
     font-weight: var(--font-weight-medium);
     text-align: center;
-    animation: slideIn 0.3s ease-out;
+    margin: var(--spacing-sm) 0;
+    animation: slideDown 0.3s ease-out;
   }
 
   .message-banner.success {
-    background: rgba(34, 197, 94, 0.2);
-    color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.3);
+    background: var(--success-light);
+    color: var(--success);
+    border: 1px solid var(--success);
   }
 
   .message-banner.error {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: var(--error-light);
+    color: var(--error);
+    border: 1px solid var(--error);
   }
 
   .shortcut-recorder {
       display: flex;
-      gap: var(--spacing-sm);
+      gap: var(--spacing-md);
+      align-items: center;
   }
 
   .shortcut-recorder input {
       flex-grow: 1;
       background-color: var(--bg-tertiary) !important;
+      font-family: 'Courier New', monospace;
+      font-weight: var(--font-weight-medium);
   }
 
   .shortcut-recorder button {
       flex-shrink: 0;
+      min-width: 80px;
   }
 
   .about-section {
-    margin-top: var(--spacing-md);
-    padding: var(--spacing-lg);
+    margin-top: var(--spacing-xl);
+    padding: var(--spacing-xl) !important;
+    border-top: 1px solid var(--border-primary);
+  }
+
+  .about-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
   }
 
   .about-content p {
+    margin: 0;
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
-    margin: 0 0 var(--spacing-sm) 0;
-    word-break: break-all;
+    line-height: 1.6;
   }
 
-  .about-content p:last-child {
-    margin-bottom: 0;
+  .about-content strong {
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
   }
 
   .about-content a {
     color: var(--primary);
     text-decoration: none;
-    transition: var(--transition-fast);
+    transition: all var(--transition-fast);
+    border-radius: var(--radius-sm);
+    padding: 2px 4px;
+    margin: -2px -4px;
   }
 
   .about-content a:hover {
+    color: var(--primary-hover);
     text-decoration: underline;
+    background: var(--bg-tertiary);
   }
 
-  input[type="checkbox"][role="switch"] {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    position: relative;
-    display: inline-block;
-    width: 36px;
-    height: 20px;
-    background-color: var(--bg-tertiary);
-    border-radius: 9999px;
-    cursor: pointer;
-    transition: background-color 0.2s ease-in-out;
-    border: 1px solid var(--border-primary);
-  }
-
-  input[type="checkbox"][role="switch"]::before {
-    content: "";
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 14px;
-    height: 14px;
-    background-color: white;
-    border-radius: 50%;
-    transition: transform 0.2s ease-in-out;
-  }
-
-  input[type="checkbox"][role="switch"]:checked {
-    background-color: var(--primary);
-  }
-
-  input[type="checkbox"][role="switch"]:checked::before {
-    transform: translateX(16px);
-  }
-
-  .flex {
-    display: flex;
-  }
-
-  .items-center {
-    align-items: center;
-  }
-
-  .justify-between {
-    justify-content: space-between;
-  }
+  
 
   /* Responsive design */
   @media (max-width: 640px) {
