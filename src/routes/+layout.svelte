@@ -5,7 +5,7 @@
   import { onMount } from 'svelte';
   import { _, isLoading } from 'svelte-i18n';
   import { chat } from '$lib/stores/chat.store';
-  import { clearChatShortcut, borderless } from '$lib/stores/settings.store';
+  import { clearChatShortcut, borderless, borderlessShortcut } from '$lib/stores/settings.store';
   import { invoke } from '@tauri-apps/api/core';
 
   let { children } = $props();
@@ -31,6 +31,12 @@
       event.preventDefault();
       chat.clearChat();
     }
+    if (currentShortcut === $borderlessShortcut) {
+      event.preventDefault();
+      borderless.update(current => !current);
+      invoke('set_decorations', { decorations: !$borderless });
+    }
+    
   }
 
   function getCurrentShortcut(e: KeyboardEvent): string {

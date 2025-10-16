@@ -64,7 +64,7 @@
       "clearChatShortcut": "Clear Chat Shortcut",
       "clearChatShortcutHint": "Record a keyboard shortcut for clearing chat messages",
       "borderless": "Borderless Mode",
-      "borderlessHint": "Remove window decorations. You can drag the window from any non-interactive area."
+      "borderlessShortcutHint": "Record a keyboard shortcut to toggle borderless mode"
     },
     "language": {
       "title": "Language"

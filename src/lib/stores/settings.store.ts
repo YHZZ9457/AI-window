@@ -46,3 +46,5 @@ export const shortcut = createPersistentStore('shortcut', 'Alt+Space');
 export const systemPrompt = createPersistentStore('system_prompt', 'You are a helpful assistant.');
 export const apiType = createPersistentStore('api_type', 'openai');
 export const borderless = createPersistentStore('borderless', false);
+
+export const borderlessShortcut = createPersistentStore('borderless_shortcut', 'Ctrl+Shift+B');

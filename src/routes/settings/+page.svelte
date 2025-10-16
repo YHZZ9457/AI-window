@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { _ } from 'svelte-i18n';
-  import { clearChatShortcut, borderless } from '$lib/stores/settings.store';
+  import { clearChatShortcut, borderless, borderlessShortcut } from '$lib/stores/settings.store';
 
   let settings = $state({
     api_key: '',
@@ -17,10 +17,10 @@
   let openSection = $state('aiConfig'); // aiConfig, appSettings
   let isRecording = $state(false);
   let isRecordingClearChat = $state(false);
-  let isRecordingMinimalMode = $state(false);
+  let isRecordingBorderless = $state(false);
   let previousShortcut = '';
   let previousClearChatShortcut = '';
-  let previousMinimalModeShortcut = '';
+  let previousBorderlessShortcut = '';
 
   const handleShortcutKeydown = (event: KeyboardEvent) => {
     event.preventDefault();
@@ -128,6 +128,59 @@
     window.removeEventListener('keydown', handleClearChatShortcutKeydown, { capture: true });
   }
 
+  const handleBorderlessShortcutKeydown = (event: KeyboardEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.key === 'Escape') {
+      cancelBorderlessRecording();
+      return;
+    }
+
+    if (['Control', 'Alt', 'Shift', 'Meta'].includes(event.key)) {
+        return;
+    }
+
+    const parts = [];
+    if (event.ctrlKey) parts.push('Ctrl');
+    if (event.altKey) parts.push('Alt');
+    if (event.shiftKey) parts.push('Shift');
+    if (event.metaKey) parts.push('Super');
+
+    const key = event.key.toUpperCase();
+    let finalKey = key;
+    if (key.startsWith('ARROW')) {
+        finalKey = key.substring(5);
+    }
+    if (finalKey === ' ') {
+        finalKey = 'SPACE';
+    }
+    parts.push(finalKey);
+
+    const isChar = event.key.length === 1 && event.key.match(/[a-zA-Z0-9]/);
+    if (parts.length > 0 && (!isChar || parts.length > 1)) {
+      borderlessShortcut.set(parts.join('+'));
+    } else {
+      borderlessShortcut.set(previousBorderlessShortcut);
+    }
+
+    isRecordingBorderless = false;
+    window.removeEventListener('keydown', handleBorderlessShortcutKeydown, { capture: true });
+  };
+
+  function startBorderlessRecording() {
+    previousBorderlessShortcut = $borderlessShortcut;
+    isRecordingBorderless = true;
+    borderlessShortcut.set($_('settings.appSettings.shortcutRecording'));
+    window.addEventListener('keydown', handleBorderlessShortcutKeydown, { capture: true });
+  }
+
+  function cancelBorderlessRecording() {
+    isRecordingBorderless = false;
+    borderlessShortcut.set(previousBorderlessShortcut);
+    window.removeEventListener('keydown', handleBorderlessShortcutKeydown, { capture: true });
+  }
+
   
 
 
@@ -161,12 +214,13 @@
         settings.api_url = normalizeApiUrl(settings.api_url);
       }
     }).catch((e) => {
-      message = $_('settings.messages.loadError', { values: { error: e }});
+      message = $_('settings.messages.loadError', { values: { error: String(e) }});
     });
 
     return () => {
         window.removeEventListener('keydown', handleShortcutKeydown, { capture: true });
         window.removeEventListener('keydown', handleClearChatShortcutKeydown, { capture: true });
+        window.removeEventListener('keydown', handleBorderlessShortcutKeydown, { capture: true });
     };
   });
 
@@ -199,7 +253,7 @@
       message = $_('settings.messages.saveSuccess');
       setTimeout(() => { message = '' }, 3000);
     } catch (e) {
-      message = $_('settings.messages.saveError', { values: { error: e }});
+      message = $_('settings.messages.saveError', { values: { error: String(e) }});
     }
   }
 
@@ -408,15 +462,33 @@
                 <div class="shortcut-recorder">
                   <input id="clear-chat-shortcut" type="text" readonly bind:value={$clearChatShortcut} />
                   {#if isRecordingClearChat}
-                      <button class="secondary-button" onclick={cancelClearChatRecording}>{$_('settings.appSettings.shortcutCancel')}</button>
+                      <button type="button" class="secondary-button" onclick={cancelClearChatRecording}>{$_('settings.appSettings.shortcutCancel')}</button>
                   {:else}
-                      <button class="primary-button" onclick={startClearChatRecording}>{$_('settings.appSettings.shortcutRecord')}</button>
+                      <button type="button" class="primary-button" onclick={startClearChatRecording}>{$_('settings.appSettings.shortcutRecord')}</button>
                   {/if}
                 </div>
                 {#if isRecordingClearChat}
                   <p class="hint">{$_('settings.appSettings.shortcutHintRecording')}</p>
-                {:else}
+                {/if}
+                {#if isRecordingClearChat}
                   <p class="hint">{$_('settings.appSettings.clearChatShortcutHint')}</p>
+                {/if}
+              </div>
+
+              <div class="form-group span-2">
+                <label for="borderless-shortcut">{$_('settings.appSettings.borderless')}</label>
+                <div class="shortcut-recorder">
+                  <input id="borderless-shortcut" type="text" readonly bind:value={$borderlessShortcut} />
+                  {#if isRecordingBorderless}
+                    <button type="button" class="secondary-button" onclick={cancelBorderlessRecording}>{$_('settings.appSettings.shortcutCancel')}</button>
+                  {:else}
+                    <button type="button" class="primary-button" onclick={startBorderlessRecording}>{$_('settings.appSettings.shortcutRecord')}</button>
+                  {/if}
+                </div>
+                {#if isRecordingBorderless}
+                  <p class="hint">{$_('settings.appSettings.shortcutHintRecording')}</p>
+                {:else}
+                  <p class="hint">{$_('settings.appSettings.borderlessShortcutHint')}</p>
                 {/if}
               </div>
 
@@ -607,12 +679,7 @@
     gap: var(--spacing-sm);
   }
 
-  .form-group-horizontal {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--spacing-lg);
-  }
+  
 
   .form-group-header {
     display: flex;
@@ -732,53 +799,7 @@
     border-color: var(--primary);
   }
 
-  /* Toggle Switch Styles */
-  .toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 52px;
-    height: 28px;
-  }
-
-  .toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  .toggle-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--bg-tertiary);
-    border: 1px solid var(--border-primary);
-    transition: var(--transition-normal);
-    border-radius: 34px;
-  }
-
-  .toggle-slider:before {
-    position: absolute;
-    content: "";
-    height: 20px;
-    width: 20px;
-    left: 3px;
-    bottom: 3px;
-    background-color: var(--bg-primary);
-    transition: var(--transition-normal);
-    border-radius: 50%;
-  }
-
-  input:checked + .toggle-slider {
-    background-color: var(--primary);
-    border-color: var(--primary);
-  }
-
-  input:checked + .toggle-slider:before {
-    transform: translateX(24px);
-  }
+  
 
     .message-banner {
     padding: var(--spacing-md);

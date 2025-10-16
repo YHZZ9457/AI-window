@@ -654,12 +654,24 @@ pub fn run() {
 
     tauri::Builder::default()
         .setup(|app| {
-            perform_security_checks(app.handle());
+            // 延迟安全检查，先让窗口显示
             let app_handle = app.handle().clone();
-            let settings = get_settings(app_handle.clone()).unwrap_or_default();
-            if let Some(shortcut) = settings.get("shortcut") {
-                let _ = register_shortcut(app_handle, shortcut.as_str().unwrap().to_string());
-            }
+            
+            // 在后台线程中执行安全检查
+            std::thread::spawn(move || {
+                perform_security_checks(&app_handle);
+            });
+            
+            // 延迟加载设置和注册快捷键
+            let app_handle_clone = app.handle().clone();
+            std::thread::spawn(move || {
+                if let Ok(settings) = get_settings(app_handle_clone.clone()) {
+                    if let Some(shortcut) = settings.get("shortcut") {
+                        let _ = register_shortcut(app_handle_clone, shortcut.as_str().unwrap().to_string());
+                    }
+                }
+            });
+            
             Ok(())
         })
         .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(handler).build())

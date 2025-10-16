@@ -319,7 +319,7 @@
       <h1 class="title" data-tauri-drag-region>{$_('home.title')}</h1>
     </div>
     <div class="header-buttons">
-      <button onclick={() => chat.clearChat($_('home.initialMessage'))} class="header-button" aria-label={$_('home.buttons.clear')} title={`${$_('home.buttons.clear')} (${$clearChatShortcut})`}>
+      <button onclick={() => chat.clearChat()} class="header-button" aria-label={$_('home.buttons.clear')} title={`${$_('home.buttons.clear')} (${$clearChatShortcut})`}>
         <ClearIcon />
       </button>
       <button onclick={exportToJSON} class="header-button" aria-label={$_('home.buttons.export')} title={`${$_('home.buttons.export')} (Ctrl+Shift+E)`}>
