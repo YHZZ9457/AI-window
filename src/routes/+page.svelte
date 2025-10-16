@@ -18,7 +18,7 @@
   import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   import { invoke } from '@tauri-apps/api/core';
   import { save, open } from '@tauri-apps/plugin-dialog';
-  import { writeTextFile, readFile } from '@tauri-apps/plugin-fs';
+  import { readFile, writeTextFile } from '@tauri-apps/plugin-fs';
   import { writeText } from '@tauri-apps/plugin-clipboard-manager';
   import { theme } from '$lib/stores/theme';
   import { _, locale } from 'svelte-i18n';
@@ -80,12 +80,21 @@
 
   async function processTextFile(file: { path?: string; file?: File }) {
     if (isLoading) return;
+    
+    // Check if this is actually an image file
+    const initialFileName = file.path ? file.path.split(/[\\\/]/).pop() || 'unknown' : file.file?.name;
+    const fileExtension = initialFileName?.split('.').pop()?.toLowerCase();
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(fileExtension || '')) {
+      console.warn('Image file detected in processTextFile, this should be handled by processImageFile');
+      return;
+    }
+    
     let fileName: string;
     let fileData: Uint8Array;
 
     try {
       if (file.path) {
-        fileName = file.path.split(/[\/]/).pop() || file.path;
+        fileName = file.path.split(/[\/]/).pop() || 'unknown';
         fileData = await readFile(file.path);
       } else if (file.file) {
         fileName = file.file.name;
@@ -178,11 +187,10 @@
     });
   }
 
-  async function handleFileSelect(selected: string | { path: string; file: File } | null) {
+  async function handleFileSelect(selected: { path: string; file: File } | null) {
     if (!selected) return;
 
-    const file = typeof selected === 'string' ? { path: selected, file: await (await fetch(selected)).blob().then(b => new File([b], selected.split('/').pop()!)) } : selected;
-    const targetFile = file.file;
+    const targetFile = selected.file;
     
     if (targetFile.type.startsWith('image/')) {
       await processImageFile(targetFile);
@@ -209,8 +217,18 @@
       });
 
       if (typeof selected === 'string') {
-        const blob = await (await fetch(selected)).blob();
-        const file = new File([blob], selected.split('/').pop()!, {type: blob.type});
+        const fileData = await readFile(selected);
+        const fileName = selected.split(/[\\\/]/).pop() || 'unknown';
+        const fileExtension = fileName.split('.').pop()?.toLowerCase();
+        
+        // Determine MIME type based on file extension
+        let mimeType = 'application/octet-stream';
+        if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(fileExtension || '')) {
+          mimeType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
+        }
+        
+        const blob = new Blob([fileData], { type: mimeType });
+        const file = new File([blob], fileName, { type: mimeType });
         await handleFileSelect({ path: selected, file });
       }
     } catch (error) {
@@ -389,7 +407,7 @@ ${fileText}` : fileText;
 <main data-tauri-drag-region class="glass">
   <div class="header" data-tauri-drag-region>
     <div class="header-left" data-tauri-drag-region>
-      <LogoIcon class="logo" />
+      <LogoIcon />
       <h1 class="title" data-tauri-drag-region>{$_('home.title')}</h1>
     </div>
     <div class="header-buttons">
@@ -510,7 +528,7 @@ ${fileText}` : fileText;
         />
         <button onclick={handleSubmit} disabled={isLoading} class="send-button">
           {#if isLoading}
-            <LoadingIcon class="loading-icon" />
+            <LoadingIcon />
           {:else}
             <SendIcon />
           {/if}

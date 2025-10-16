@@ -410,7 +410,15 @@ async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>) -> Result<St
     // 清理 API 密钥 - 移除可能的引号和多余空格
     let api_key = api_key.trim().to_string();
     let api_key = api_key.trim_matches('"').trim_matches('\'').to_string();
-    let api_url = store.get("api_url").map(|v| v.to_string()).unwrap_or("https://api.openai.com/v1/chat/completions".to_string());
+        let api_type = store.get("api_type").map(|v| v.to_string()).unwrap_or("openai".to_string());
+    let api_type = api_type.trim().to_string();
+    let api_type = api_type.trim_matches('\"').trim_matches('\'').to_string();
+
+    let api_url = if api_type == "openai" {
+        "https://api.openai.com/v1/chat/completions".to_string()
+    } else {
+        store.get("api_url").map(|v| v.to_string()).unwrap_or_default()
+    };
     
     // 验证 API URL
     if api_url.trim().is_empty() {

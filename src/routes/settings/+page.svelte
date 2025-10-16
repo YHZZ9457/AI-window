@@ -405,6 +405,7 @@
                 />
               </div>
 
+              {#if settings.api_type === 'openai-compatible'}
               <div class="form-group span-2">
                 <div class="form-group-header">
                   <label for="api-url">{$_('settings.aiConfig.apiEndpoint')}</label>
@@ -424,6 +425,7 @@
                   {/if}
                 </p>
               </div>
+              {/if}
 
               <div class="form-group">
                 <div class="form-group-header">
