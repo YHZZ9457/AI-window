@@ -219,6 +219,9 @@ fn get_settings(app: AppHandle) -> Result<serde_json::Value, String> {
     if let Some(clear_chat_shortcut) = store.get("clear_chat_shortcut") {
         settings.insert("clear_chat_shortcut".to_string(), clear_chat_shortcut.clone());
     }
+    if let Some(borderless_shortcut) = store.get("borderless_shortcut") {
+        settings.insert("borderless_shortcut".to_string(), borderless_shortcut.clone());
+    }
 
     Ok(serde_json::Value::Object(settings))
 }
@@ -255,6 +258,9 @@ fn set_settings(app: AppHandle, settings: serde_json::Value) -> Result<(), Strin
     }
     if let Some(clear_chat_shortcut) = settings.get("clear_chat_shortcut") {
         store.set("clear_chat_shortcut", clear_chat_shortcut.clone());
+    }
+    if let Some(borderless_shortcut) = settings.get("borderless_shortcut") {
+        store.set("borderless_shortcut", borderless_shortcut.clone());
     }
 
     store.save().map_err(|e| e.to_string())?;

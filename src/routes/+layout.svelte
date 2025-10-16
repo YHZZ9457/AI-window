@@ -33,8 +33,11 @@
     }
     if (currentShortcut === $borderlessShortcut) {
       event.preventDefault();
-      borderless.update(current => !current);
-      invoke('set_decorations', { decorations: !$borderless });
+      borderless.update(current => {
+        const newValue = !current;
+        invoke('set_decorations', { decorations: newValue });
+        return newValue;
+      });
     }
     
   }

@@ -227,7 +227,11 @@
   async function handleSave(event: Event) {
     event.preventDefault();
     try {
-      const processedSettings = { ...settings, clear_chat_shortcut: $clearChatShortcut };
+      const processedSettings = { 
+        ...settings, 
+        clear_chat_shortcut: $clearChatShortcut,
+        borderless_shortcut: $borderlessShortcut 
+      };
       processedSettings.api_url = normalizeApiUrl(processedSettings.api_url);
       
       // 处理API密钥：如果显示的是占位符点，使用实际值；如果用户清空了，则清空
@@ -351,7 +355,7 @@
     <form onsubmit={handleSave}>
       <div class="settings-content">
         <div class="settings-section">
-          <button class="accordion-header" onclick={() => toggleSection('aiConfig')} aria-expanded={openSection === 'aiConfig'}>
+          <button type="button" class="accordion-header" onclick={() => toggleSection('aiConfig')} aria-expanded={openSection === 'aiConfig'}>
             <span class="accordion-title">{$_('settings.aiConfig.title')}</span>
             <span class="chevron {openSection === 'aiConfig' ? 'open' : ''}"></span>
           </button>
@@ -434,7 +438,7 @@
         </div>
 
         <div class="settings-section">
-          <button class="accordion-header" onclick={() => toggleSection('appSettings')} aria-expanded={openSection === 'appSettings'}>
+          <button type="button" class="accordion-header" onclick={() => toggleSection('appSettings')} aria-expanded={openSection === 'appSettings'}>
             <span class="accordion-title">{$_('settings.appSettings.title')}</span>
             <span class="chevron {openSection === 'appSettings' ? 'open' : ''}"></span>
           </button>
