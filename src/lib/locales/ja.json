@@ -62,11 +62,7 @@
       "clearChatShortcut": "チャットクリアショートカット",
       "clearChatShortcutHint": "チャットメッセージをクリアするキーボードショートカットを記録してください",
       "borderless": "ボーダーレスモード",
-      "borderlessHint": "ウィンドウの装飾を削除します。非インタラクティブな領域からウィンドウをドラッグできます。",
-      "minimalMode": "ミニマルモード",
-      "minimalModeHint": "クリーンなフローティングチャットウィンドウに切り替え、透明な背景で常に最前面に表示されます。",
-      "minimalModeShortcut": "ミニマルモードショートカット",
-      "minimalModeShortcutHint": "ミニマルモードを切り替えるキーボードショートカットを記録してください"
+      "borderlessHint": "ウィンドウの装飾を削除します。非インタラクティブな領域からウィンドウをドラッグできます。"
     },
     "language": {
       "title": "言語"

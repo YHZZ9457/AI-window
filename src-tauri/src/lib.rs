@@ -19,16 +19,7 @@ fn set_decorations(window: tauri::Window, decorations: bool) {
   let _ = window.set_decorations(decorations);
 }
 
-#[tauri::command]
-fn set_minimal_mode(app: tauri::AppHandle, minimal: bool) {
-  if let Some(window) = app.get_webview_window("main") {
-    // 移除窗口装饰
-    let _ = window.set_decorations(!minimal);
-    
-    // 设置窗口置顶
-    let _ = window.set_always_on_top(minimal);
-  }
-}
+
 
 #[tauri::command]
 fn register_shortcut(app: AppHandle, shortcut: String) -> Result<(), String> {
@@ -685,8 +676,7 @@ pub fn run() {
             get_settings,
             set_settings,
             register_shortcut,
-            set_decorations,
-            set_minimal_mode
+            set_decorations
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { _ } from 'svelte-i18n';
-  import { clearChatShortcut, borderless, minimalMode, minimalModeShortcut } from '$lib/stores/settings.store';
+  import { clearChatShortcut, borderless } from '$lib/stores/settings.store';
 
   let settings = $state({
     api_key: '',
@@ -128,59 +128,7 @@
     window.removeEventListener('keydown', handleClearChatShortcutKeydown, { capture: true });
   }
 
-  const handleMinimalModeShortcutKeydown = (event: KeyboardEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (event.key === 'Escape') {
-      cancelMinimalModeRecording();
-      return;
-    }
-
-    if (['Control', 'Alt', 'Shift', 'Meta'].includes(event.key)) {
-        return;
-    }
-
-    const parts = [];
-    if (event.ctrlKey) parts.push('Ctrl');
-    if (event.altKey) parts.push('Alt');
-    if (event.shiftKey) parts.push('Shift');
-    if (event.metaKey) parts.push('Super');
-
-    const key = event.key.toUpperCase();
-    let finalKey = key;
-    if (key.startsWith('ARROW')) {
-        finalKey = key.substring(5);
-    }
-    if (finalKey === ' ') {
-        finalKey = 'SPACE';
-    }
-    parts.push(finalKey);
-
-    const isChar = event.key.length === 1 && event.key.match(/[a-zA-Z0-9]/);
-    if (parts.length > 0 && (!isChar || parts.length > 1)) {
-      minimalModeShortcut.set(parts.join('+'));
-    } else {
-      // Single character without modifiers, ignore
-      return;
-    }
-
-    isRecordingMinimalMode = false;
-    window.removeEventListener('keydown', handleMinimalModeShortcutKeydown, { capture: true });
-  };
-
-  function startMinimalModeRecording() {
-    previousMinimalModeShortcut = $minimalModeShortcut;
-    isRecordingMinimalMode = true;
-    minimalModeShortcut.set($_('settings.appSettings.shortcutRecording'));
-    window.addEventListener('keydown', handleMinimalModeShortcutKeydown, { capture: true });
-  }
-
-  function cancelMinimalModeRecording() {
-    isRecordingMinimalMode = false;
-    minimalModeShortcut.set(previousMinimalModeShortcut);
-    window.removeEventListener('keydown', handleMinimalModeShortcutKeydown, { capture: true });
-  }
+  
 
 
 
@@ -287,9 +235,7 @@
     }
     
     // 对于常见的 API 提供商，添加标准路径
-    if (normalizedUrl.includes('api.deepseek.com') || 
-        normalizedUrl.includes('api.openai.com') ||
-        normalizedUrl.includes('api.anthropic.com')) {
+    if (normalizedUrl.includes('api.deepseek.com')) {
       return normalizedUrl + '/v1/chat/completions';
     }
     
@@ -389,6 +335,7 @@
                 <div class="form-group-header">
                   <label for="api-key">{$_('settings.aiConfig.apiKey')}</label>
                 </div>
+                <input type="text" autocomplete="username" style="display:none;">
                 <input 
                   id="api-key" 
                   type="password" 
@@ -396,6 +343,7 @@
                   placeholder={$_('settings.aiConfig.apiKeyPlaceholder')}
                   onfocus={handleApiKeyFocus}
                   onblur={handleApiKeyBlur}
+                  autocomplete="current-password"
                 />
               </div>
 
@@ -472,16 +420,7 @@
                 {/if}
               </div>
 
-              <div class="form-group form-group-horizontal span-2">
-                <div class="form-group-header">
-                  <label for="borderless-toggle">{$_('settings.appSettings.borderless')}</label>
-                  <p class="hint" style="margin-top: 2px;">{$_('settings.appSettings.borderlessHint')}</p>
-                </div>
-                <label class="toggle-switch">
-                  <input id="borderless-toggle" type="checkbox" bind:checked={$borderless} />
-                  <span class="toggle-slider"></span>
-                </label>
-              </div>
+              
           </div>
           {/if}
         </div>

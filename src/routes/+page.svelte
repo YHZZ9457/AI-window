@@ -216,29 +216,32 @@
       appWindow = window;
     });
     
+    // Initialize chat after i18n is ready
+    chat.init();
+    
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && appWindow) {
-        appWindow.hide();
+      appWindow.hide();
+    }
+    
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'E') {
+      e.preventDefault();
+      exportToJSON();
+    }
+    
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
+      e.preventDefault();
+      toggleTheme();
+    }
+    
+    if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+      e.preventDefault();
+      const input = document.querySelector('.message-input') as HTMLInputElement;
+      if (input) {
+        input.focus();
       }
-      
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'E') {
-        e.preventDefault();
-        exportToJSON();
-      }
-      
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
-        e.preventDefault();
-        toggleTheme();
-      }
-      
-      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
-        e.preventDefault();
-        const input = document.querySelector('.message-input') as HTMLInputElement;
-        if (input) {
-          input.focus();
-        }
-      }
-    };
+    }
+  };
 
     const handleClickOutside = (event: MouseEvent) => {
         if (languageMenuElement && !languageMenuElement.contains(event.target as Node)) {

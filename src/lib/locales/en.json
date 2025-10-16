@@ -64,11 +64,7 @@
       "clearChatShortcut": "Clear Chat Shortcut",
       "clearChatShortcutHint": "Record a keyboard shortcut for clearing chat messages",
       "borderless": "Borderless Mode",
-      "borderlessHint": "Remove window decorations. You can drag the window from any non-interactive area.",
-      "minimalMode": "Minimal Mode",
-      "minimalModeHint": "Switch to a clean, floating chat window with transparent background and always-on-top.",
-      "minimalModeShortcut": "Minimal Mode Shortcut",
-      "minimalModeShortcutHint": "Record a keyboard shortcut for toggling minimal mode"
+      "borderlessHint": "Remove window decorations. You can drag the window from any non-interactive area."
     },
     "language": {
       "title": "Language"

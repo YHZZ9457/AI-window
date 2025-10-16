@@ -5,17 +5,10 @@
   import { onMount } from 'svelte';
   import { _, isLoading } from 'svelte-i18n';
   import { chat } from '$lib/stores/chat.store';
-  import { clearChatShortcut, borderless, minimalMode, minimalModeShortcut } from '$lib/stores/settings.store';
+  import { clearChatShortcut, borderless } from '$lib/stores/settings.store';
   import { invoke } from '@tauri-apps/api/core';
 
   let { children } = $props();
-
-  $effect(() => {
-    if (!$isLoading) {
-      // Use clearChat to ensure the translated message is always set after i18n loads.
-      chat.clearChat($_('home.initialMessage'));
-    }
-  });
 
   onMount(() => {
     // Apply initial theme
@@ -32,29 +25,12 @@
     };
   });
 
-  $effect(() => {
-    if ($borderless !== undefined) {
-      invoke('set_decorations', { decorations: !$borderless });
-    }
-  });
-
-  // $effect(() => {
-  //   if ($minimalMode !== undefined) {
-  //     invoke('set_minimal_mode', { minimal: $minimalMode });
-  //     console.log('Minimal mode:', $minimalMode);
-  //   }
-  // });
-
   function handleKeyDown(event: KeyboardEvent) {
     const currentShortcut = getCurrentShortcut(event);
     if (currentShortcut === $clearChatShortcut) {
       event.preventDefault();
-      chat.clearChat($_('home.initialMessage'));
+      chat.clearChat();
     }
-    // } else if (currentShortcut === $minimalModeShortcut) {
-    //   event.preventDefault();
-    //   minimalMode.set(!$minimalMode);
-    // }
   }
 
   function getCurrentShortcut(e: KeyboardEvent): string {
@@ -73,10 +49,10 @@
       finalKey = key.substring(5);
     }
     if (finalKey === ' ') {
-      finalKey = 'SPACE';
+      finalKey = 'Space';
     }
     
-    if (!['CONTROL', 'ALT', 'SHIFT', 'META'].includes(finalKey)) {
+    if (!['Control', 'Alt', 'Shift', 'Meta'].includes(finalKey)) {
         parts.push(finalKey);
     }
     
