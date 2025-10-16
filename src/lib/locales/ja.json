@@ -22,7 +22,9 @@
       "language": "言語を切り替える",
       "attach": "ファイルを添付"
     },
-    "copySuccess": "コピーしました"
+    "copySuccess": "コピーしました",
+    "dropToUpload": "ここにドロップしてアップロード",
+    "dropHint": "画像とテキストファイルをサポート"
   },
   "settings": {
     "title": "設定",

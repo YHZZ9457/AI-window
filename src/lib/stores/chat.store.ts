@@ -60,7 +60,9 @@ function createChatStore() {
       });
     },
     addAssistantMessage: (content: string) => {
-      update(messages => [...messages, { role: 'assistant', content }]);
+      // Remove leading and trailing whitespace/newlines
+      const cleanedContent = content.trim();
+      update(messages => [...messages, { role: 'assistant', content: cleanedContent }]);
     },
   };
 }

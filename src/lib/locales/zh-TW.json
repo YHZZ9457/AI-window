@@ -22,7 +22,9 @@
       "language": "切換語言",
       "attach": "新增附件"
     },
-    "copySuccess": "複製成功"
+    "copySuccess": "複製成功",
+    "dropToUpload": "拖放到此處上傳",
+    "dropHint": "支援圖片和文字檔案"
   },
   "settings": {
     "title": "設定",

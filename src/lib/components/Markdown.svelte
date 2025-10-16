@@ -12,8 +12,24 @@
     gfm: true
   });
 
+  // Check if this is the initial placeholder message
+  const isInitialMessage = (content: string): boolean => {
+    const initialMessages = [
+      'AI response will appear here.',
+      'AI 的回复会出现在这里。',
+      'AI 的回覆會出現在這裡。',
+      'AIの応答はここに表示されます。'
+    ];
+    return initialMessages.includes(content.trim());
+  };
+
   async function renderMarkdown() {
-    html = await marked.parse(text);
+    // For initial messages, don't use Markdown to avoid extra paragraph spacing
+    if (isInitialMessage(text)) {
+      html = text;
+    } else {
+      html = await marked.parse(text);
+    }
   }
 
   onMount(async () => {
@@ -30,7 +46,7 @@
   });
 </script>
 
-<div class="markdown-content">
+<div class="markdown-content" class:initial-message={isInitialMessage(text)}>
   {@html html}
 </div>
 
@@ -180,5 +196,15 @@
 
   .markdown-content :global(em) {
     font-style: italic;
+  }
+
+  /* Special styling for initial placeholder message */
+  .markdown-content.initial-message {
+    margin: 0;
+    padding: 0;
+  }
+
+  .markdown-content.initial-message :global(p) {
+    margin: 0;
   }
 </style>

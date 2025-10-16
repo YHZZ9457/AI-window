@@ -37,6 +37,7 @@
   let outputAreaElement: HTMLElement;
   let showLanguageMenu = $state(false);
   let languageMenuElement: HTMLElement;
+  let isDragOver = $state(false);
   
   // Attachment state
   let attachedFileName = $state<string | null>(null);
@@ -128,13 +129,13 @@
     try {
       removeAttachment(); // Clear previous attachments
 
-      // 1. Set preview
-      imagePreviewUrl = URL.createObjectURL(file);
+      // Compress and convert to Base64
+      const base64Content = await getCompressedImageAsBase64(file);
+      
+      // Use base64 data for both preview and storage
+      imagePreviewUrl = base64Content;
       attachedFileName = file.name;
       attachmentType = 'image';
-
-      // 2. Compress and convert to Base64
-      const base64Content = await getCompressedImageAsBase64(file);
       attachedFileContent = base64Content;
       
       const input = document.querySelector('.message-input') as HTMLInputElement;
@@ -364,7 +365,17 @@ ${fileText}` : fileText;
     };
 
     const handleFileDrop = (file: File) => {
-      handleFileSelect({ path: file.name, file });
+      // Check if file is an image or supported text file
+      const isImage = file.type.startsWith('image/');
+      const isSupportedText = [
+        'txt', 'md', 'json', 'csv', 'html', 'css', 'js', 'ts', 'py', 'rs', 'pdf', 'docx'
+      ].some(ext => file.name.toLowerCase().endsWith(`.${ext}`));
+      
+      if (isImage || isSupportedText) {
+        handleFileSelect({ path: file.name, file });
+      } else {
+        console.warn('Unsupported file type:', file.type, file.name);
+      }
     };
 
     const handlePaste = (event: ClipboardEvent) => {
@@ -377,21 +388,52 @@ ${fileText}` : fileText;
 
     const handleDragOver = (event: DragEvent) => {
       event.preventDefault();
+      
+      // Check if any files are being dragged
+      const hasFiles = event.dataTransfer?.types.includes('Files');
+      console.log('Drag over - has files:', hasFiles, 'types:', event.dataTransfer?.types);
+      if (hasFiles && event.dataTransfer) {
+        isDragOver = true;
+        event.dataTransfer.dropEffect = 'copy';
+      }
+    };
+
+    const handleDragLeave = (event: DragEvent) => {
+      event.preventDefault();
+      isDragOver = false;
     };
 
     const handleDrop = (event: DragEvent) => {
       event.preventDefault();
+      isDragOver = false;
+      
+      console.log('Drop event - files:', event.dataTransfer?.files);
       const file = event.dataTransfer?.files[0];
       if (file) {
+        console.log('Dropped file:', file.name, file.type, file.size);
         handleFileDrop(file);
+      } else {
+        console.log('No file found in drop event');
       }
     };
 
     document.addEventListener('keydown', handleKey);
     document.addEventListener('click', handleClickOutside, true);
     document.addEventListener('paste', handlePaste);
+    
+    // Add drag and drop listeners to the entire document
     document.addEventListener('dragover', handleDragOver);
+    document.addEventListener('dragleave', handleDragLeave);
     document.addEventListener('drop', handleDrop);
+    
+    // Also add to the main element for better coverage
+    const mainElement = document.querySelector('main');
+    if (mainElement) {
+      mainElement.addEventListener('dragover', handleDragOver);
+      mainElement.addEventListener('dragleave', handleDragLeave);
+      mainElement.addEventListener('drop', handleDrop);
+    }
+    
     scrollToBottom();
 
     return () => {
@@ -399,12 +441,31 @@ ${fileText}` : fileText;
       document.removeEventListener('click', handleClickOutside, true);
       document.removeEventListener('paste', handlePaste);
       document.removeEventListener('dragover', handleDragOver);
+      document.removeEventListener('dragleave', handleDragLeave);
       document.removeEventListener('drop', handleDrop);
+      
+      // Also remove from main element
+      const mainElement = document.querySelector('main');
+      if (mainElement) {
+        mainElement.removeEventListener('dragover', handleDragOver);
+        mainElement.removeEventListener('dragleave', handleDragLeave);
+        mainElement.removeEventListener('drop', handleDrop);
+      }
     };
   });
 </script>
 
 <main data-tauri-drag-region class="glass">
+  {#if isDragOver}
+    <div class="drop-overlay">
+      <div class="drop-content">
+        <div class="drop-icon">📁</div>
+        <div class="drop-text">{$_('home.dropToUpload')}</div>
+        <div class="drop-hint">{$_('home.dropHint')}</div>
+      </div>
+    </div>
+  {/if}
+  
   <div class="header" data-tauri-drag-region>
     <div class="header-left" data-tauri-drag-region>
       <LogoIcon />
@@ -1011,6 +1072,71 @@ ${fileText}` : fileText;
     cursor: not-allowed;
   }
 
+  /* Drop overlay styles */
+  .drop-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-modal);
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  .drop-content {
+    background: var(--bg-secondary);
+    border: 3px dashed var(--primary);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xxl);
+    text-align: center;
+    max-width: 400px;
+    animation: pulse 2s infinite;
+  }
+
+  .drop-icon {
+    font-size: 4rem;
+    margin-bottom: var(--spacing-md);
+    animation: bounce 1s infinite;
+  }
+
+  .drop-text {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .drop-hint {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    opacity: 0.8;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+      border-color: var(--primary);
+    }
+    50% {
+      transform: scale(1.02);
+      border-color: var(--primary-hover);
+    }
+  }
+
+  @keyframes bounce {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
   @media (max-width: 640px) {
     .header {
       padding: var(--spacing-md) var(--spacing-lg);
@@ -1030,6 +1156,19 @@ ${fileText}` : fileText;
     
     .messages-container {
       padding: var(--spacing-lg);
+    }
+
+    .drop-content {
+      margin: var(--spacing-lg);
+      padding: var(--spacing-xl);
+    }
+
+    .drop-icon {
+      font-size: 3rem;
+    }
+
+    .drop-text {
+      font-size: var(--font-size-lg);
     }
   }
 </style>

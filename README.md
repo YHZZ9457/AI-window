@@ -17,6 +17,14 @@ A modern, minimalist desktop AI assistant application built with SvelteKit and T
   - 💾 **Export Chat** - Save conversations as JSON files
   - ⌨️ **Global Shortcut** - Quick access with customizable keyboard shortcuts
   - 📎 **File Attachment** - Attach text, PDF, and Word files via button, paste, or drag-and-drop
+- 🖼️ **Image Support** - Upload and process images with visual preview
+- 🎯 **Drag & Drop** - Intuitive file upload with visual feedback
+- 🌍 **Multi-language** - Full internationalization support (English, Chinese, Japanese)
+
+- 📎 **文件附件** - 通过按钮、粘贴或拖拽上传文本、PDF 和 Word 文件
+- 🖼️ **图片支持** - 上传和处理图片，带有视觉预览
+- 🎯 **拖放上传** - 直观的文件上传体验，带有视觉反馈
+- 🌍 **多语言支持** - 完整的国际化支持（英文、中文、日文）
 
 - 🚀 **现代化界面** - 简洁的黑白极简设计，支持夜间模式
 - 🌙 **夜间模式** - 无缝主题切换，支持系统偏好检测
@@ -99,11 +107,13 @@ Configure API keys, model settings, and shortcuts
    - Enter your OpenAI API key and preferred model
    - Set up global shortcut if desired
    - Choose your preferred theme (Light, Dark, or Auto)
+   - Select your preferred language
    
    - 点击右上角的设置图标
    - 输入你的 OpenAI API 密钥和首选模型
    - 根据需要设置全局快捷键
    - 选择你偏好的主题（亮色、暗色或自动）
+   - 选择你偏好的语言
 
 3. **Start chatting** / **开始对话**
    - Type your message in the input field
@@ -116,11 +126,42 @@ Configure API keys, model settings, and shortcuts
    - 使用清除按钮开始新的对话
    - 通过标题栏的主题按钮切换主题
 
+### File Upload Methods / 文件上传方式
+
+1. **Button Upload** / **按钮上传**
+   - Click the attachment button (+)
+   - Select files from the file dialog
+   - Supports images and text files
+   
+   - 点击附件按钮 (+)
+   - 从文件对话框中选择文件
+   - 支持图片和文本文件
+
+2. **Drag & Drop** / **拖放上传**
+   - Drag files directly onto the application window
+   - Visual overlay provides feedback during drag
+   - Automatic file type detection and processing
+   
+   - 直接将文件拖拽到应用窗口
+   - 拖拽时显示视觉覆盖层提供反馈
+   - 自动文件类型检测和处理
+
+3. **Paste from Clipboard** / **剪贴板粘贴**
+   - Copy images or files to clipboard
+   - Paste directly into the application
+   - Automatic processing of pasted content
+   
+   - 复制图片或文件到剪贴板
+   - 直接粘贴到应用中
+   - 自动处理粘贴的内容
+
 ### Keyboard Shortcuts / 键盘快捷键
 
 - `Enter` - Send message / 发送消息
 - `Escape` - Hide window / 隐藏窗口
-- `Ctrl+Q` (default) - Clear chat (configurable) / 清空对话（可自定义）
+- `Ctrl+/` - Focus message input / 聚焦消息输入框
+- `Ctrl+Shift+E` - Export chat to JSON / 导出对话到 JSON
+- `Ctrl+Shift+T` - Toggle theme / 切换主题
 - Custom global shortcut (configurable) / 可自定义的全局快捷键
 
 ### Theme Management / 主题管理
@@ -151,7 +192,24 @@ Configure your settings through the application's Settings page:
 - **Clear Chat Shortcut** - Keyboard shortcut to clear chat history
 - **Theme** - Choose between Light, Dark, or Auto (follow system)
 
+- **API 地址** - OpenAI API 端点或兼容服务地址
+- **模型名称** - 首选的 AI 模型（例如 gpt-4o-mini）
+- **全局快捷键** - 显示/隐藏应用的键盘快捷键
+- **清空对话快捷键** - 清空对话历史的键盘快捷键
+- **主题** - 在亮色、暗色或自动（跟随系统）之间选择
+
+### Supported File Formats / 支持的文件格式
+
+- **Images** / **图片**: PNG, JPG, JPEG, GIF, WebP
+- **Text Files** / **文本文件**: TXT, MD, JSON, CSV, HTML, CSS, JS, TS, PY, RS
+- **Documents** / **文档**: PDF, DOCX
+
+All uploaded files are processed automatically and can be referenced in your conversations.
+
+所有上传的文件都会自动处理，可以在对话中引用。
+
 - **系统提示** - 定义 AI 的行为和个性
+- **API 类型** - 选择 OpenAI 或 OpenAI 兼容服务
 - **API 密钥** - 你的 OpenAI 或兼容服务（如 DeepSeek）的 API 密钥
 - **API 地址** - OpenAI API 端点或兼容服务地址
 - **模型名称** - 首选的 AI 模型（例如 gpt-4o-mini）
@@ -231,6 +289,20 @@ We welcome contributions! Please feel free to submit issues and pull requests.
 5. Submit a pull request / 提交拉取请求
 
 ## Changelog / 更新日志
+
+### v0.4.4 (2025-10-16)
+
+- **Drag & Drop:** Added intuitive drag and drop file upload with visual feedback
+- **Image Support:** Enhanced image processing with preview and compression
+- **UI Improvements:** Optimized file name display and attachment preview styling
+- **Markdown Enhancement:** Improved Markdown rendering with better styling
+- **Bug Fixes:** Fixed file type detection and import issues
+
+- **拖放功能:** 添加了直观的拖放文件上传功能，带有视觉反馈
+- **图片支持:** 增强了图片处理功能，支持预览和压缩
+- **界面优化:** 优化了文件名显示和附件预览样式
+- **Markdown 增强:** 改进了 Markdown 渲染效果，样式更美观
+- **错误修复:** 修复了文件类型检测和导入问题
 
 ### v0.4.0 (2025-10-14)
 

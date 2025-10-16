@@ -22,7 +22,9 @@
       "language": "Change language",
       "attach": "Attach File"
     },
-    "copySuccess": "Copied!"
+    "copySuccess": "Copied!",
+    "dropToUpload": "Drop to upload",
+    "dropHint": "Supports images and text files"
   },
   "settings": {
     "title": "Settings",
