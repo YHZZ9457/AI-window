@@ -37,8 +37,13 @@
   let outputAreaElement: HTMLElement;
   let showLanguageMenu = $state(false);
   let languageMenuElement: HTMLElement;
+  
+  // Attachment state
   let attachedFileName = $state<string | null>(null);
-  let attachedFileContent = $state<string | null>(null);
+  let attachedFileContent = $state<string | null>(null); // For text content or base64 image
+  let attachmentType = $state<'text' | 'image' | null>(null);
+  let imagePreviewUrl = $state<string | null>(null);
+
   let copiedMessageIndex = $state<number | null>(null);
 
   async function copy(text: string, index: number) {
@@ -61,15 +66,26 @@
     }
   });
 
-  async function processFile(file: { path?: string; file?: File }) {
-    if (isLoading) return;
+  // --- NEW & MODIFIED FILE HANDLING ---
 
+  function removeAttachment() {
+    attachedFileName = null;
+    attachedFileContent = null;
+    attachmentType = null;
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+      imagePreviewUrl = null;
+    }
+  }
+
+  async function processTextFile(file: { path?: string; file?: File }) {
+    if (isLoading) return;
     let fileName: string;
     let fileData: Uint8Array;
 
     try {
       if (file.path) {
-        fileName = file.path.split(/[\\/]/).pop() || file.path;
+        fileName = file.path.split(/[\/]/).pop() || file.path;
         fileData = await readFile(file.path);
       } else if (file.file) {
         fileName = file.file.name;
@@ -84,82 +100,168 @@
         fileName
       });
 
+      removeAttachment(); // Clear previous attachments
       attachedFileName = fileName;
       attachedFileContent = content as string;
+      attachmentType = 'text';
 
       const input = document.querySelector('.message-input') as HTMLInputElement;
-      if (input) {
-        input.focus();
-      }
+      if (input) input.focus();
+
     } catch (error) {
-      console.error('Failed to process file:', error);
-      // Optionally, display an error message to the user
+      console.error('Failed to process text file:', error);
+      removeAttachment();
     }
   }
 
-  async function handleAttachment() {
+  async function processImageFile(file: File) {
+    if (isLoading) return;
+    try {
+      removeAttachment(); // Clear previous attachments
+
+      // 1. Set preview
+      imagePreviewUrl = URL.createObjectURL(file);
+      attachedFileName = file.name;
+      attachmentType = 'image';
+
+      // 2. Compress and convert to Base64
+      const base64Content = await getCompressedImageAsBase64(file);
+      attachedFileContent = base64Content;
+      
+      const input = document.querySelector('.message-input') as HTMLInputElement;
+      if (input) input.focus();
+
+    } catch (error) {
+      console.error('Failed to process image file:', error);
+      removeAttachment();
+    }
+  }
+
+  async function getCompressedImageAsBase64(file: File): Promise<string> {
+    const MAX_SIZE_MB = 3;
+    const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
+    let imageFile = file;
+
+    if (file.size > MAX_SIZE_BYTES) {
+      console.log(`Image is larger than ${MAX_SIZE_MB}MB, compressing...`);
+      imageFile = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return reject('Could not get canvas context');
+
+          const scaleRatio = Math.sqrt(MAX_SIZE_BYTES / file.size);
+          canvas.width = img.width * scaleRatio;
+          canvas.height = img.height * scaleRatio;
+
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          canvas.toBlob(blob => {
+            if (!blob) return reject('Canvas to Blob conversion failed');
+            const compressedFile = new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() });
+            console.log('Compressed file size:', compressedFile.size / 1024 / 1024, 'MB');
+            resolve(compressedFile);
+          }, 'image/jpeg', 0.8); // Adjust quality
+        };
+        img.onerror = reject;
+      });
+    }
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(imageFile);
+    });
+  }
+
+  async function handleFileSelect(selected: string | { path: string; file: File } | null) {
+    if (!selected) return;
+
+    const file = typeof selected === 'string' ? { path: selected, file: await (await fetch(selected)).blob().then(b => new File([b], selected.split('/').pop()!)) } : selected;
+    const targetFile = file.file;
+    
+    if (targetFile.type.startsWith('image/')) {
+      await processImageFile(targetFile);
+    } else {
+      await processTextFile({ file: targetFile });
+    }
+  }
+
+  async function handleAttachmentClick() {
     if (isLoading) return;
     try {
       const selected = await open({
         multiple: false,
         filters: [
           {
-            name: 'Supported Files',
-            extensions: [
-              'txt',
-              'md',
-              'json',
-              'csv',
-              'html',
-              'css',
-              'js',
-              'ts',
-              'py',
-              'rs',
-              'pdf',
-              'docx'
-            ]
+            name: 'Images',
+            extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp']
+          },
+          {
+            name: 'Text Files',
+            extensions: ['txt', 'md', 'json', 'csv', 'html', 'css', 'js', 'ts', 'py', 'rs', 'pdf', 'docx']
           }
         ]
       });
 
       if (typeof selected === 'string') {
-        await processFile({ path: selected });
+        const blob = await (await fetch(selected)).blob();
+        const file = new File([blob], selected.split('/').pop()!, {type: blob.type});
+        await handleFileSelect({ path: selected, file });
       }
     } catch (error) {
       console.error('Failed to open file:', error);
     }
   }
 
-  function removeAttachment() {
-    attachedFileName = null;
-    attachedFileContent = null;
-  }
+  // --- END OF FILE HANDLING ---
 
   async function handleSubmit() {
     if ((!prompt && !attachedFileContent) || isLoading) return;
 
-    // 1. Add the message to the Svelte store for UI display
-    chat.addUserMessage(prompt, attachedFileContent ? { name: attachedFileName!, content: attachedFileContent } : null);
+    const attachmentForStore = attachedFileContent ? { 
+      name: attachedFileName!, 
+      content: attachedFileContent,
+      type: attachmentType!,
+      previewUrl: imagePreviewUrl // Will be null for text, populated for images
+    } : null;
 
-    // 2. Create a deep copy of messages for the backend to avoid mutating the UI state
+    chat.addUserMessage(prompt, attachmentForStore);
+
     const messagesForBackend = structuredClone($chat);
     const lastMessage = messagesForBackend[messagesForBackend.length - 1];
 
-    // 3. In the copy, combine the text and file content for the AI
     if (lastMessage && lastMessage.role === 'user' && lastMessage.attachment) {
-      const fileText = `--- Attached File: ${lastMessage.attachment.name} ---\n${lastMessage.attachment.content}`;
-      lastMessage.content = lastMessage.content ? `${lastMessage.content}\n\n${fileText}` : fileText;
-      delete lastMessage.attachment; // Clean up attachment from backend payload
+      if (lastMessage.attachment.type === 'image') {
+        // For images, the content is already base64. We can enrich the prompt.
+        lastMessage.content = `[Image attached: ${lastMessage.attachment.name}] ${lastMessage.content}`;
+      } else {
+        // For text files, append the content.
+        const fileText = `--- Attached File: ${lastMessage.attachment.name} ---
+${lastMessage.attachment.content}`;
+        lastMessage.content = lastMessage.content ? `${lastMessage.content}
+
+${fileText}` : fileText;
+      }
+       // The backend needs to know about the image data
+      if (lastMessage.attachment.type === 'image') {
+        // The actual base64 content is already in `lastMessage.attachment.content`
+        // We just need to make sure the backend API can handle this structure.
+        // Let's assume the backend wants the base64 string directly in the attachment content.
+      } else {
+         delete lastMessage.attachment; // Clean up text attachment from backend payload
+      }
     }
 
     prompt = '';
     removeAttachment();
-
     isLoading = true;
 
     try {
-      // 4. Send the modified copy to the backend
       const result = await invoke('ask_ai', { messages: messagesForBackend });
       chat.addAssistantMessage(result as string);
     } catch (error) {
@@ -216,32 +318,26 @@
       appWindow = window;
     });
     
-    // Initialize chat after i18n is ready
     chat.init();
     
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && appWindow) {
-      appWindow.hide();
-    }
-    
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'E') {
-      e.preventDefault();
-      exportToJSON();
-    }
-    
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
-      e.preventDefault();
-      toggleTheme();
-    }
-    
-    if ((e.ctrlKey || e.metaKey) && e.key === '/') {
-      e.preventDefault();
-      const input = document.querySelector('.message-input') as HTMLInputElement;
-      if (input) {
-        input.focus();
+        appWindow.hide();
       }
-    }
-  };
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'E') {
+        e.preventDefault();
+        exportToJSON();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
+        e.preventDefault();
+        toggleTheme();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        const input = document.querySelector('.message-input') as HTMLInputElement;
+        if (input) input.focus();
+      }
+    };
 
     const handleClickOutside = (event: MouseEvent) => {
         if (languageMenuElement && !languageMenuElement.contains(event.target as Node)) {
@@ -249,49 +345,27 @@
         }
     };
 
-    const handleFile = (file: File) => {
-      const allowedExtensions = [
-        '.txt',
-        '.md',
-        '.json',
-        '.csv',
-        '.html',
-        '.css',
-        '.js',
-        '.ts',
-        '.py',
-        '.rs',
-        '.pdf',
-        '.docx'
-      ];
-      const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`;
-
-      if (!allowedExtensions.includes(fileExtension)) {
-        console.warn('Unsupported file type:', file.type);
-        // Optionally, show a user-facing error message here.
-        return;
-      }
-
-      processFile({ file });
+    const handleFileDrop = (file: File) => {
+      handleFileSelect({ path: file.name, file });
     };
 
     const handlePaste = (event: ClipboardEvent) => {
       const file = event.clipboardData?.files[0];
       if (file) {
         event.preventDefault();
-        handleFile(file);
+        handleFileDrop(file);
       }
     };
 
     const handleDragOver = (event: DragEvent) => {
-      event.preventDefault(); // Necessary to allow drop
+      event.preventDefault();
     };
 
     const handleDrop = (event: DragEvent) => {
       event.preventDefault();
       const file = event.dataTransfer?.files[0];
       if (file) {
-        handleFile(file);
+        handleFileDrop(file);
       }
     };
 
@@ -369,17 +443,24 @@
           </div>
           <div class="content">
             {#if message.content}
-            {#if message.role === 'assistant'}
-              <Markdown text={message.content} />
-            {:else}
-              <div class="message-text">{message.content}</div>
-            {/if}
+              {#if message.role === 'assistant'}
+                <Markdown text={message.content} />
+              {:else}
+                <div class="message-text">{message.content}</div>
+              {/if}
             {/if}
             {#if message.attachment}
-              <div class="attachment-block">
-                <div class="attachment-icon"><FileTextIcon /></div>
-                <span class="attachment-name">{message.attachment.name}</span>
-              </div>
+              {#if message.attachment.type === 'image' && message.attachment.previewUrl}
+                <div class="attachment-block image-attachment">
+                  <img src={message.attachment.previewUrl} alt={message.attachment.name} class="attachment-image-preview" />
+                  <span class="attachment-name">{message.attachment.name}</span>
+                </div>
+              {:else if message.attachment.type === 'text'}
+                <div class="attachment-block">
+                  <div class="attachment-icon"><FileTextIcon /></div>
+                  <span class="attachment-name">{message.attachment.name}</span>
+                </div>
+              {/if}
             {/if}
           </div>
         </div>
@@ -405,13 +486,16 @@
     
     <div class="input-container">
       <div class="input-wrapper">
-        <button onclick={handleAttachment} class="attachment-button" aria-label={$_('home.buttons.attach')} title={$_('home.buttons.attach')}>
+        <button onclick={handleAttachmentClick} class="attachment-button" aria-label={$_('home.buttons.attach')} title={$_('home.buttons.attach')}>
           <PlusIcon />
         </button>
         {#if attachedFileName}
-          <div class="filename-pill">
+          <div class="attachment-preview-pill">
+            {#if attachmentType === 'image' && imagePreviewUrl}
+              <img src={imagePreviewUrl} alt="preview" class="pill-image-preview" />
+            {/if}
             <span class="pill-text" title={attachedFileName}>{attachedFileName}</span>
-            <button onclick={removeAttachment} class="remove-pill-button" title="Remove file">
+            <button onclick={removeAttachment} class="remove-pill-button" title="Remove attachment">
               <ClearIcon />
             </button>
           </div>
@@ -447,7 +531,7 @@
     background: var(--bg-primary);
   }
 
-    .header {
+  .header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -463,7 +547,6 @@
     align-items: center;
     gap: var(--spacing-md);
   }
-
 
   .title {
     font-size: var(--font-size-xl);
@@ -672,6 +755,10 @@
     flex-direction: column;
     gap: var(--spacing-sm);
   }
+  
+  .message-text {
+    white-space: pre-wrap;
+  }
 
   .attachment-block {
     display: flex;
@@ -681,13 +768,27 @@
     padding: var(--spacing-sm) var(--spacing-md);
     border-radius: var(--radius-md);
     border: 1px solid var(--border-primary);
+    margin-top: var(--spacing-xs);
   }
 
   .message.user .attachment-block {
     background: rgba(255, 255, 255, 0.1);
     border-color: rgba(255, 255, 255, 0.2);
   }
+  
+  .attachment-block.image-attachment {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--spacing-xs);
+  }
 
+  .attachment-image-preview {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: var(--radius-sm);
+    object-fit: contain;
+  }
+  
   .attachment-icon {
     flex-shrink: 0;
     width: 20px;
@@ -700,6 +801,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    padding: var(--spacing-xs) var(--spacing-xs) 0;
   }
 
   .loading-message {
@@ -737,25 +839,33 @@
     }
   }
 
-  .filename-pill {
+  .attachment-preview-pill {
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-full);
-    padding: 4px var(--spacing-sm);
+    padding: 4px;
+    padding-right: var(--spacing-sm);
     font-size: var(--font-size-xs);
     white-space: nowrap;
     overflow: hidden;
     flex-shrink: 1;
+    max-width: 50%;
+  }
+  
+  .pill-image-preview {
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-full);
+    object-fit: cover;
   }
 
   .pill-text {
     color: var(--text-secondary);
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 120px;
   }
 
   .remove-pill-button {
@@ -868,8 +978,6 @@
     cursor: not-allowed;
   }
 
-
-  /* Responsive design */
   @media (max-width: 640px) {
     .header {
       padding: var(--spacing-md) var(--spacing-lg);

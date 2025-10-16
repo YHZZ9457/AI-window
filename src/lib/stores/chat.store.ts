@@ -3,7 +3,9 @@ import { _ } from 'svelte-i18n';
 
 export type Attachment = {
   name: string;
-  content: string;
+  content: string; // For text, this is the text content. For images, this is the base64 data.
+  type: 'text' | 'image';
+  previewUrl?: string | null; // URL for image previews in the UI
 };
 
 export type Message = {

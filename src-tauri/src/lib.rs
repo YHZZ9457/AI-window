@@ -345,13 +345,29 @@ fn extract_text(app: AppHandle, bytes: Vec<u8>, file_name: String) -> Result<Str
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct ConversationMessage {
     role: String,
-    content: String,
+    // Content can be a simple string or a more complex structure (e.g., for images)
+    content: serde_json::Value,
+    // Attachment is now part of the message from the frontend
+    #[serde(default)]
+    attachment: Option<Attachment>,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct Attachment {
+    name: String,
+    #[serde(rename = "type")]
+    attachment_type: String,
+    content: String, // Base64 content for images
+    #[serde(rename = "previewUrl")]
+    #[serde(default)]
+    preview_url: Option<String>,
+}
+
 
 #[derive(Serialize)]
 struct AIRequest {
     model: String,
-    messages: Vec<ConversationMessage>,
+    messages: Vec<serde_json::Value>, // Use Value to support different message structures
     stream: bool,
 }
 
@@ -444,24 +460,53 @@ async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>) -> Result<St
         return Err("Please set your API key in the settings.".to_string());
     }
 
-    // 消息内容验证和清理
-    let mut safe_messages = Vec::new();
-    for message in messages {
-        let sanitized_content = InputValidator::sanitize_system_prompt(&message.content);
-        safe_messages.push(ConversationMessage {
-            role: message.role,
-            content: sanitized_content,
-        });
+    // --- Build Messages for API ---
+    let mut messages_to_send = Vec::new();
+
+    // 1. Add System Prompt
+    if !system_prompt.is_empty() {
+        messages_to_send.push(serde_json::json!({
+            "role": "system",
+            "content": system_prompt.clone()
+        }));
     }
 
-    let mut messages_to_send = Vec::new();
-    if !system_prompt.is_empty() {
-        messages_to_send.push(ConversationMessage {
-            role: "system".to_string(),
-            content: system_prompt.clone(),
-        });
+    // 2. Process User and Assistant Messages
+    for message in messages {
+        let role = message.role;
+        let mut final_content = message.content;
+
+        // If there's an attachment and it's an image, create a multi-part content
+        if let Some(attachment) = message.attachment {
+            if attachment.attachment_type == "image" {
+                let text_content = final_content.as_str().unwrap_or("").to_string();
+                
+                final_content = serde_json::json!([
+                    {
+                        "type": "text",
+                        "text": InputValidator::sanitize_system_prompt(&text_content)
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": attachment.content // This is the base64 data URL
+                        }
+                    }
+                ]);
+            }
+        } else {
+            // For messages without image attachments, just sanitize the text content
+            if let Some(text) = final_content.as_str() {
+                final_content = serde_json::Value::String(InputValidator::sanitize_system_prompt(text));
+            }
+        }
+
+        messages_to_send.push(serde_json::json!({
+            "role": role,
+            "content": final_content
+        }));
     }
-    messages_to_send.extend(safe_messages);
+
 
     // 记录API请求
     SecurityLogger::log_api_request(&app, &api_url, &model_name);
