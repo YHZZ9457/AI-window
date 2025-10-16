@@ -776,6 +776,9 @@ ${fileText}` : fileText;
   
   .message-text {
     white-space: pre-wrap;
+    line-height: 1.6;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
 
   .attachment-block {
@@ -787,6 +790,8 @@ ${fileText}` : fileText;
     border-radius: var(--radius-md);
     border: 1px solid var(--border-primary);
     margin-top: var(--spacing-xs);
+    transition: var(--transition-normal);
+    max-width: 100%;
   }
 
   .message.user .attachment-block {
@@ -798,6 +803,7 @@ ${fileText}` : fileText;
     flex-direction: column;
     align-items: flex-start;
     padding: var(--spacing-xs);
+    max-width: 300px;
   }
 
   .attachment-image-preview {
@@ -805,12 +811,14 @@ ${fileText}` : fileText;
     max-height: 200px;
     border-radius: var(--radius-sm);
     object-fit: contain;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
   
   .attachment-icon {
     flex-shrink: 0;
     width: 20px;
     height: 20px;
+    color: var(--text-secondary);
   }
 
   .attachment-name {
@@ -820,6 +828,13 @@ ${fileText}` : fileText;
     overflow: hidden;
     text-overflow: ellipsis;
     padding: var(--spacing-xs) var(--spacing-xs) 0;
+    color: var(--text-secondary);
+    max-width: 200px;
+  }
+
+  .attachment-block:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
   .loading-message {
