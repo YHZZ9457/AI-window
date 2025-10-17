@@ -13,14 +13,20 @@
   });
 
   // Check if this is the initial placeholder message
+  // We detect initial messages by checking if they are simple, short text without markdown formatting
   const isInitialMessage = (content: string): boolean => {
-    const initialMessages = [
-      'AI response will appear here.',
-      'AI 的回复会出现在这里。',
-      'AI 的回覆會出現在這裡。',
-      'AIの応答はここに表示されます。'
-    ];
-    return initialMessages.includes(content.trim());
+    const trimmed = content.trim();
+    
+    // Check if it's a short message (less than 50 characters)
+    const isShort = trimmed.length < 50;
+    
+    // Check if it doesn't contain markdown formatting
+    const hasNoMarkdown = !/[*_`\[\]!#>\-]/.test(trimmed);
+    
+    // Check if it's a simple sentence (no line breaks, no complex structure)
+    const isSimple = !trimmed.includes('\n') && trimmed.split(' ').length < 10;
+    
+    return isShort && hasNoMarkdown && isSimple;
   };
 
   async function renderMarkdown() {

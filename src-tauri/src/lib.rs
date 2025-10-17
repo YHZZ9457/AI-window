@@ -11,6 +11,7 @@ use regex::Regex;
 use std::io::Write;
 use std::env;
 use tauri_plugin_store::StoreBuilder;
+use ts_rs::TS;
 
 
 
@@ -342,17 +343,20 @@ fn extract_text(app: AppHandle, bytes: Vec<u8>, file_name: String) -> Result<Str
 
 // --- AI API Logic ---
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, TS)]
+#[ts(export)]
 struct ConversationMessage {
     role: String,
     // Content can be a simple string or a more complex structure (e.g., for images)
+    #[ts(type = "any")]
     content: serde_json::Value,
     // Attachment is now part of the message from the frontend
     #[serde(default)]
     attachment: Option<Attachment>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, TS)]
+#[ts(export)]
 struct Attachment {
     name: String,
     #[serde(rename = "type")]
@@ -395,13 +399,26 @@ struct ResponseMessage {
     content: String,
 }
 
+#[derive(Debug, Serialize, TS)]
+#[ts(export)]
+#[serde(tag = "type", content = "message")]
+pub enum ApiError {
+    NetworkError(String),
+    InvalidApiKey,
+    InvalidApiUrl(String),
+    InvalidModelName(String),
+    RateLimitExceeded,
+    ApiResponseError(String),
+    InternalError(String),
+}
+
 #[tauri::command]
-async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>) -> Result<String, String> {
-    let config_dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>) -> Result<String, ApiError> {
+    let config_dir = app.path().app_config_dir().map_err(|e| ApiError::InternalError(e.to_string()))?;
     let path = config_dir.join("settings.dat");
     let store = match StoreBuilder::new(app.app_handle(), path).build() {
         Ok(store) => store,
-        Err(e) => return Err(e.to_string()),
+        Err(e) => return Err(ApiError::InternalError(e.to_string())),
     };
     let _ = store.reload();
 
@@ -423,7 +440,7 @@ async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>) -> Result<St
     // 验证 API URL
     if api_url.trim().is_empty() {
         SecurityLogger::log_security_violation(&app, "API URL is empty");
-        return Err("API URL cannot be empty. Please set it in the settings.".to_string());
+        return Err(ApiError::InvalidApiUrl("API URL cannot be empty. Please set it in the settings.".to_string()));
     }
     
     // 确保 URL 是有效的 - 移除可能的引号和多余空格
@@ -439,7 +456,7 @@ async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>) -> Result<St
     
     if let Err(e) = InputValidator::validate_url(&api_url) {
         SecurityLogger::log_security_violation(&app, &format!("Invalid API URL: {}", e));
-        return Err(e);
+        return Err(ApiError::InvalidApiUrl(e));
     }
     
     // 清理模型名称 - 移除可能的引号和多余空格
@@ -449,23 +466,18 @@ async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>) -> Result<St
 
     if let Err(e) = InputValidator::validate_model_name(&model_name) {
         SecurityLogger::log_security_violation(&app, &format!("Invalid model name: {}", e));
-        return Err(e);
+        return Err(ApiError::InvalidModelName(e));
     }
     
     // 清理系统提示 - 移除可能的引号和多余空格
     let system_prompt = store.get("system_prompt").map(|v| v.to_string()).unwrap_or("You are a helpful assistant.".to_string());
     let system_prompt = system_prompt.trim().to_string();
     let system_prompt = system_prompt.trim_matches('"').trim_matches('\'').to_string();
-    
-    // 清理 API 类型
-    let api_type = store.get("api_type").map(|v| v.to_string()).unwrap_or("openai".to_string());
-    let api_type = api_type.trim().to_string();
-    let api_type = api_type.trim_matches('"').trim_matches('\'').to_string();
 
     // API密钥验证
     if api_key.is_empty() || api_key == "your_api_key_here" {
         SecurityLogger::log_security_violation(&app, "API key not set");
-        return Err("Please set your API key in the settings.".to_string());
+        return Err(ApiError::InvalidApiKey);
     }
 
     // --- Build Messages for API ---
@@ -524,7 +536,7 @@ async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>) -> Result<St
         .build()
         .map_err(|e| {
             SecurityLogger::log_error(&app, &format!("Failed to create HTTP client: {}", e));
-            format!("Failed to create HTTP client: {}", e)
+            ApiError::InternalError(format!("Failed to create HTTP client: {}", e))
         })?;
 
     let request_body = AIRequest {
@@ -532,14 +544,6 @@ async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>) -> Result<St
         messages: messages_to_send,
         stream: false,
     };
-
-    // 调试：记录请求详情
-    println!("=== DEBUG API REQUEST ===");
-    println!("API URL: {}", api_url);
-    println!("Model Name: {}", model_name);
-    println!("API Type: {}", api_type);
-    println!("Request Body: {}", serde_json::to_string_pretty(&request_body).unwrap_or("Failed to serialize".to_string()));
-    println!("=== END DEBUG ===");
 
     let mut request = client.post(&api_url);
     
@@ -560,13 +564,13 @@ async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>) -> Result<St
         .await
         .map_err(|e| {
             SecurityLogger::log_error(&app, &format!("API request failed: {}", e));
-            format!("API request failed: {}", e)
+            ApiError::NetworkError(e.to_string())
         })?;
 
     if res.status().is_success() {
         let response_text = res.text().await.map_err(|e| {
             SecurityLogger::log_error(&app, &format!("Failed to read response: {}", e));
-            format!("Failed to read response: {}", e)
+            ApiError::ApiResponseError(format!("Failed to read response: {}", e))
         })?;
         
         // 首先尝试解析为标准的 OpenAI 格式
@@ -619,30 +623,30 @@ async fn ask_ai(app: AppHandle, messages: Vec<ConversationMessage>) -> Result<St
         
         // 如果无法解析为标准格式，返回原始响应用于调试
         SecurityLogger::log_error(&app, &format!("Unable to parse API response. URL: {}, Model: {}", api_url, model_name));
-        Err(format!("Unable to parse API response. Please check if the API endpoint and model name are correct. Raw response: {}", response_text))
+        Err(ApiError::ApiResponseError(format!("Unable to parse API response. Please check if the API endpoint and model name are correct. Raw response: {}", response_text)))
     } else {
         let status = res.status();
         let error_body = res.text().await.map_err(|e| {
             SecurityLogger::log_error(&app, &format!("Failed to read error response: {}", e));
-            format!("Failed to read error response: {}", e)
+            ApiError::ApiResponseError(format!("Failed to read error response: {}", e))
         })?;
         
         // 提供更详细的错误信息
         let error_message = if status.as_u16() == 401 {
             SecurityLogger::log_security_violation(&app, "API authentication failed");
-            "Authentication failed. Please check your API key."
+            ApiError::InvalidApiKey
         } else if status.as_u16() == 404 {
             SecurityLogger::log_error(&app, "API endpoint not found");
-            "API endpoint not found. Please check the URL."
+            ApiError::InvalidApiUrl("API endpoint not found. Please check the URL.".to_string())
         } else if status.as_u16() == 429 {
             SecurityLogger::log_security_event_with_file(&app, "Rate limit exceeded", "WARNING");
-            "Rate limit exceeded. Please try again later."
+            ApiError::RateLimitExceeded
         } else {
             SecurityLogger::log_error(&app, &format!("API request failed with status: {}", status));
-            "API request failed"
+            ApiError::ApiResponseError(format!("API request failed with status {}: {}", status, error_body))
         };
         
-        Err(format!("{} ({}): {}\nCheck your API endpoint URL and model name in settings.", error_message, status, error_body))
+        Err(error_message)
     }
 }
 // --- Window and App Setup ---
@@ -713,6 +717,10 @@ pub fn run() {
 
     tauri::Builder::default()
         .setup(|app| {
+            // Conditionally export TS bindings in debug builds
+            #[cfg(debug_assertions)]
+            export_ts_bindings();
+
             // 延迟安全检查，先让窗口显示
             let app_handle = app.handle().clone();
             
@@ -751,4 +759,20 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(debug_assertions)]
+fn export_ts_bindings() {
+    let ts_string = ["// This file is generated by `ts-rs`. Do not edit this file manually.",
+        &ApiError::export_to_string().unwrap(),
+        &ConversationMessage::export_to_string().unwrap(),
+        &Attachment::export_to_string().unwrap(),
+    ].join("\n\n");
+
+    if let Ok(mut file) = std::fs::File::create("../src/lib/bindings.ts") {
+        let _ = file.write_all(ts_string.as_bytes());
+        println!("✅ TypeScript bindings exported to ../src/lib/bindings.ts");
+    } else {
+        println!("❌ Failed to export TypeScript bindings.");
+    }
 }
