@@ -347,3 +347,7 @@ If you encounter any issues or have questions:
 **Made with ❤️ for the developer community**
 
 **为开发者社区用心打造 ❤️**
+
+All code in this project has not been manually reviewed. Do not use this project in any serious production development environment or for commercial use to avoid any potential losses.
+
+本项目的所有代码均未经过人工审查。请勿将此项目用于任何严肃的生产开发环境或商业使用，以避免可能造成的损失。
