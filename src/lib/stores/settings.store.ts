@@ -32,7 +32,7 @@ function createPersistentStore<T>(key: string, defaultValue: T) {
 export const clearChatShortcut = createPersistentStore('clear_chat_shortcut', 'Ctrl+Q');
 
 export const systemPromptPresets = {
-  default: 'You are a helpful assistant.',
+  default: 'You are a helpful assistant. Please answer the user\'s questions concisely.',
   minimal: 'Your function is to distill every query to its absolute essence. Provide the single most critical piece of information as a declarative statement. Maximum signal, zero noise. Your response should rarely exceed one sentence.',
   custom: ''
 };
@@ -43,7 +43,7 @@ export const apiKey = createPersistentStore('api_key', '');
 export const apiUrl = createPersistentStore('api_url', 'https://api.openai.com/v1/chat/completions');
 export const modelName = createPersistentStore('model_name', 'gpt-4o-mini');
 export const shortcut = createPersistentStore('shortcut', 'Alt+Space');
-export const systemPrompt = createPersistentStore('system_prompt', 'You are a helpful assistant.');
+export const systemPrompt = createPersistentStore('system_prompt', 'You are a helpful assistant. Please answer the user\'s questions concisely.');
 export const apiType = createPersistentStore('api_type', 'openai');
 export const borderless = createPersistentStore('borderless', false);
 

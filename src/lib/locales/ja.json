@@ -33,7 +33,7 @@
       "title": "AI 設定",
       "systemPromptPreset": "システムプロンプトプリセット",
       "systemPromptPresetDefault": "デフォルト",
-      "systemPromptPresetDefaultDesc": "標準的な役立つアシスタント",
+      "systemPromptPresetDefaultDesc": "質問に簡潔に答える親切なアシスタント",
       "systemPromptPresetMinimal": "ミニマル",
       "systemPromptPresetMinimalDesc": "簡潔で信号重視の応答",
       "systemPromptPresetCustom": "カスタム",

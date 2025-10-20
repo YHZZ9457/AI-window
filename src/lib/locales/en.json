@@ -33,7 +33,7 @@
       "title": "AI Configuration",
       "systemPromptPreset": "System Prompt Preset",
       "systemPromptPresetDefault": "Default",
-      "systemPromptPresetDefaultDesc": "Standard helpful assistant",
+      "systemPromptPresetDefaultDesc": "A helpful assistant that answers questions concisely.",
       "systemPromptPresetMinimal": "Minimal",
       "systemPromptPresetMinimalDesc": "Concise, signal-focused responses",
       "systemPromptPresetCustom": "Custom",

@@ -33,7 +33,7 @@
       "title": "AI 設定",
       "systemPromptPreset": "系統提示預設",
       "systemPromptPresetDefault": "預設",
-      "systemPromptPresetDefaultDesc": "標準的有用助手",
+      "systemPromptPresetDefaultDesc": "一個能簡明扼要地回答問題的樂於助人的助手。",
       "systemPromptPresetMinimal": "極簡",
       "systemPromptPresetMinimalDesc": "簡潔、信號導向的回覆",
       "systemPromptPresetCustom": "自訂",
