@@ -13,7 +13,6 @@
     PlusIcon,
     FileTextIcon
   } from '$lib/components/icons';
-  import Markdown from '$lib/components/Markdown.svelte';
   import { onMount, onDestroy } from 'svelte';
   import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   import { invoke } from '@tauri-apps/api/core';
@@ -26,6 +25,7 @@
   import { clearChatShortcut } from '$lib/stores/settings.store';
 
   let appWindow: WebviewWindow | null = null;
+  let Markdown: any = $state(null);
 
   type Message = {
     role: 'user' | 'assistant' | 'system';
@@ -332,7 +332,9 @@ ${fileText}` : fileText;
     }
   }
 
-  onMount(() => {
+  onMount(async () => {
+    const markdownModule = await import('$lib/components/Markdown.svelte');
+    Markdown = markdownModule.default;
     WebviewWindow.getByLabel('main').then(window => {
       appWindow = window;
     });
@@ -523,7 +525,9 @@ ${fileText}` : fileText;
           <div class="content">
             {#if message.content}
               {#if message.role === 'assistant'}
-                <Markdown text={message.content} />
+                {#if Markdown}
+                  <Markdown text={message.content} />
+                {/if}
               {:else}
                 <div class="message-text">{message.content}</div>
               {/if}
